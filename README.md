@@ -2,31 +2,6 @@
 
 실제 한국 주식시장 시세를 기반으로 가상 자금으로 시장가/지정가 주문을 연습하는 실시간 모의투자 WTS.
 
-> **현재 진행 단계: Phase 7 – CI 완료 (MVP 전체 구현 완료)**
-> Phase 0(모노레포 · 인프라 · 서비스 골격) → Phase 1(Mock Login · 가상 계좌 1억원)
-> → Phase 2(Mock 시세 · Valkey · Kafka · 1분봉 · WebSocket · 실시간 가격 화면)
-> → Phase 3(주문 · 시장가/지정가 · 예약 · 상태 머신 · Idempotency · 주문 화면)
-> → Phase 4(체결 기록 · 원장 · Outbox · Kafka 이벤트 · 지정가 자동 체결)
-> → Phase 5(종목 검색 · 관심종목 · 차트 · 포트폴리오 · 라우팅)
-> → Phase 6(한국투자증권 OpenAPI 실시간 시세)에 이어
-> GitLab CI 파이프라인과 컨테이너 이미지까지.
-> CLAUDE.md §47의 Phase 0~7이 모두 끝났고, §2의 MVP 시나리오가
-> 실제 시장 데이터로 처음부터 끝까지 동작한다.
-
----
-
-## 사전 요구사항
-
-| 도구 | 버전 | 비고 |
-|---|---|---|
-| Git | 최신 | |
-| Docker Desktop | 최신 | MySQL / Kafka / Valkey 실행용. **실행 중이어야 한다** |
-| Node.js | 20 이상 | 프론트엔드 |
-| JDK | **설치 불필요** | Gradle Toolchain이 JDK 21을 자동으로 내려받는다 |
-
-Gradle도 따로 설치하지 않는다. `./gradlew`가 알아서 처리한다.
-
----
 
 ## 빠른 시작
 
@@ -351,12 +326,3 @@ lint → test → build → integration → docker
 통합 테스트와 이미지 빌드는 Docker-in-Docker를 쓴다. **GitLab 러너가 `privileged` 모드여야
 한다.** 자세한 내용은 [docs/architecture/phase7-ci.md](docs/architecture/phase7-ci.md).
 
-## 다음 단계
-
-CLAUDE.md §47의 Phase 0~7이 모두 끝났다. 남은 것은 §48의 확장 범위다.
-
-- 화면 디자인은 런스톡(learnstock) 시안을 적용했다.
-  토큰은 `frontend/src/styles/tokens.css` 하나에 모여 있다 (§30).
-  기준 문서는 [docs/learnstock/ui-requirements.md](docs/learnstock/ui-requirements.md).
-- 이미지 레지스트리 푸시 · SonarQube · Argo CD (§38)
-- Amazon Cognito · EKS/GKE · Terraform · OpenTelemetry (§48)
