@@ -1,0 +1,98 @@
+server:
+  port: ${TRADING_PORT:8082}
+  shutdown: graceful
+
+spring:
+  application:
+    name: trading-service
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_TRADING_DATABASE:wts_trading}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
+    username: ${MYSQL_USER:wts}
+    password: ${MYSQL_PASSWORD:wts}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: trading-service-pool
+      maximum-pool-size: 20
+
+  # 스키마는 Flyway 마이그레이션으로만 바꾼다 (ADR-0004).
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  jpa:
+    hibernate:
+      # 자동 DDL은 쓰지 않는다. 엔티티와 실제 스키마가 어긋나면 기동 단계에서 실패시킨다.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+        format_sql: true
+
+  # 최신 시세 조회 전용. 원본 거래 데이터는 절대 넣지 않는다 (CLAUDE.md §18).
+  data:
+    redis:
+      host: ${VALKEY_HOST:localhost}
+      port: ${VALKEY_PORT:6379}
+      timeout: 2s
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # Outbox가 직렬화를 마친 JSON 문자열을 그대로 보낸다 (CLAUDE.md §15).
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+    consumer:
+      group-id: trading-service
+      # 거래 이벤트는 유실보다 중복이 낫다. At-Least-Once를 기본 가정한다 (CLAUDE.md §17).
+      auto-offset-reset: latest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # 메시지는 문자열로 받아 Consumer가 직접 역직렬화한다.
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: manual
+
+trading:
+  # 신규 사용자 초기 가상자금 (CLAUDE.md §9.1). 설정으로 변경 가능해야 한다.
+  initial-cash: ${TRADING_INITIAL_CASH:100000000}
+  fee:
+    # MVP는 수수료/세금 0. 계산은 TradingFeeCalculator가 맡는다 (CLAUDE.md §44).
+    rate: ${TRADING_FEE_RATE:0}
+    tax-rate: ${TRADING_TAX_RATE:0}
+
+  # Transactional Outbox → Kafka (CLAUDE.md §15)
+  outbox:
+    poll-interval-ms: ${TRADING_OUTBOX_POLL_INTERVAL_MS:500}
+    batch-size: 100
+    max-retry-count: 5
+    send-timeout: 5s
+
+market:
+  price:
+    # 최신 시세가 stale이면 시장가 주문을 거절한다 (CLAUDE.md §11).
+    max-age: 5s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%X{traceId:-}] %logger{36} - %msg%n"

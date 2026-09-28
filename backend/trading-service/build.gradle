@@ -1,0 +1,25 @@
+// MVP 핵심 서비스. order/execution/account/position/portfolio/ledger를
+// 하나의 애플리케이션 안에서 모듈로 분리한다 (CLAUDE.md §6.3).
+dependencies {
+    implementation project(':common')
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.kafka:spring-kafka'
+    // 최신 시세를 Valkey에서 읽는다. market-service를 동기 호출하지 않는다 (CLAUDE.md §6.2, ADR-0008).
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    // 스키마 마이그레이션 (ADR-0004). 버전은 Spring Boot BOM이 관리한다.
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // 통합 테스트는 실제 MySQL에 Flyway 마이그레이션을 적용해 검증한다 (CLAUDE.md §35, §36).
+    // 버전은 Spring Boot BOM이 관리한다.
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'
+    // 미체결 지정가 자동 체결과 Outbox 발행을 실제 브로커로 검증한다 (§36).
+    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+}

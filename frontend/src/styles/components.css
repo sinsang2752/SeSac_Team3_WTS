@@ -1,0 +1,526 @@
+/*
+ * 재사용 컴포넌트 (docs/learnstock/ui-requirements.md §4)
+ * Button / TextField / SegmentedControl / Badge / DataPanel / Modal / Toast
+ */
+
+/* ── Panel ───────────────────────────────────────────────── */
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  overflow: hidden;
+}
+
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+}
+
+.panel__title {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+}
+
+.panel__meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.panel__count {
+  background: var(--color-brand-tint);
+  color: var(--color-brand);
+  border-radius: var(--radius-badge);
+  padding: 2px var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+/* ── DataPanel 상태: 로딩 / 빈 / 오류 ─────────────────────── */
+.state {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: center;
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+}
+
+.state__hint {
+  color: var(--color-text-faint);
+  font-size: var(--font-size-sm);
+}
+
+.state--error {
+  color: var(--color-danger);
+}
+
+.state__action {
+  margin-top: var(--space-2);
+}
+
+/* ── Button ──────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--color-subtle);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+}
+
+.btn--primary {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--color-brand-hover);
+  border-color: var(--color-brand-hover);
+}
+
+.btn--sm {
+  min-height: 28px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* 주문 CTA. 방향을 색과 글자 양쪽으로 알린다 */
+.btn--cta {
+  min-height: var(--cta-height);
+  border: 0;
+  color: #fff;
+  font-size: var(--font-size-md);
+}
+
+.btn--buy,
+.btn--buy:hover:not(:disabled) {
+  background: var(--color-price-up);
+}
+
+.btn--sell,
+.btn--sell:hover:not(:disabled) {
+  background: var(--color-price-down);
+}
+
+/* ── SegmentedControl ────────────────────────────────────── */
+/* 매수·매도: 방향마다 의미색이 다르므로 밑줄 탭으로 구분한다 */
+.sidetabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sidetabs__tab {
+  flex: 1;
+  padding: var(--space-3) 0;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.sidetabs__tab[aria-selected='true'][data-side='BUY'] {
+  color: var(--color-price-up);
+  border-bottom-color: var(--color-price-up);
+  background: #fff7f8;
+}
+
+.sidetabs__tab[aria-selected='true'][data-side='SELL'] {
+  color: var(--color-price-down);
+  border-bottom-color: var(--color-price-down);
+  background: #f6f8ff;
+}
+
+/* 시장가·지정가: 중립 선택이므로 알약 형태를 쓴다 */
+.segmented {
+  display: flex;
+  gap: var(--space-1);
+  padding: 3px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--color-subtle);
+}
+
+.segmented__option {
+  flex: 1;
+  padding: var(--space-2) 0;
+  border-radius: var(--radius-badge);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.segmented__option[aria-selected='true'] {
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* ── TextField ───────────────────────────────────────────── */
+.field {
+  display: block;
+  margin-top: var(--space-3);
+}
+
+.field__label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.field__hint {
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
+}
+
+.field__control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.field__control:focus-within {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 2px var(--color-brand-tint);
+}
+
+.field__control--error {
+  border-color: var(--color-danger);
+}
+
+.field__control input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: none;
+  outline: none;
+  text-align: right;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.field__control input:disabled {
+  color: var(--color-text-faint);
+}
+
+.field__control input::-webkit-outer-spin-button,
+.field__control input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.field__unit {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.field__step {
+  width: 24px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+}
+
+.field__error {
+  margin: var(--space-2) 0 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+/* ── label / value 한 쌍 ─────────────────────────────────── */
+.pair {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.pair__value {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+/* 같은 묶음에서 가장 중요한 값 (주문가능금액·매도가능수량) */
+.pair--emphasis {
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+}
+
+.pair--emphasis .pair__value {
+  color: var(--color-brand);
+  font-weight: 700;
+}
+
+/* ── Table ───────────────────────────────────────────────── */
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+}
+
+.table th,
+.table td {
+  padding: var(--space-3) var(--space-4);
+  text-align: right;
+}
+
+.table thead th {
+  background: var(--color-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
+.table tbody td,
+.table tbody th {
+  height: var(--cta-height);
+  border-top: 1px solid var(--color-border);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+}
+
+.table__name {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.table__sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+}
+
+.table__link {
+  color: var(--color-brand);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.table__link:hover {
+  text-decoration: underline;
+}
+
+/* ── Badge ───────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-badge);
+  background: var(--color-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 체결 대기: 사용자의 행동이 필요할 수 있는 상태라 강조한다 */
+.badge--waiting {
+  background: var(--color-brand-tint);
+  color: var(--color-brand);
+}
+
+/* 체결 완료는 손익 방향을 뜻하지 않는다. 등락색을 쓰지 않는다 */
+.badge--done {
+  background: #ecfdf3;
+  color: var(--color-success);
+}
+
+.badge--error {
+  background: #fef2f2;
+  color: var(--color-danger);
+}
+
+/* ── Modal ───────────────────────────────────────────────── */
+.modal {
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-text);
+}
+
+.modal::backdrop {
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.modal__head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.modal__title {
+  font-size: var(--font-size-xl);
+  line-height: 1.35;
+}
+
+.modal__close {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xl);
+  line-height: 1;
+}
+
+.modal__body {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--color-subtle);
+}
+
+.modal__note {
+  margin: var(--space-4) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.modal__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.modal__actions .btn {
+  flex: 1;
+}
+
+/* ── Toast ───────────────────────────────────────────────── */
+.toasts {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-6);
+  z-index: 20;
+  display: grid;
+  gap: var(--space-2);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast {
+  max-width: min(90vw, 460px);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-control);
+  background: #17323b;
+  box-shadow: var(--shadow-toast);
+  color: #fff;
+  font-size: var(--font-size-base);
+  text-align: center;
+}
+
+.toast--error {
+  background: var(--color-danger);
+}
+
+/* ── 로그인 카드 (ui-requirements §8) ────────────────────── */
+.login {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-6);
+}
+
+.login__title {
+  font-size: var(--font-size-xl);
+  line-height: 1.4;
+}
+
+.login__lead {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.login__field {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.login__field > span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.login__field input {
+  height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.login__field input:focus-visible {
+  outline: none;
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 2px var(--color-brand-tint);
+}
+
+.login__note {
+  margin: 0;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.login__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}

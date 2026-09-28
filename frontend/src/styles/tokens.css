@@ -1,0 +1,87 @@
+/*
+ * Design Token — Learn Teal (CLAUDE.md §30)
+ *
+ * 런스톡(learnstock) 시안에서 확정된 값이다.
+ * 컴포넌트는 반드시 이 변수만 참조하고 색상을 하드코딩하지 않는다.
+ *
+ * 브랜드 색과 등락 의미색은 역할이 다르다.
+ * 브랜드는 로고·탭·CTA·선택 상태에만 쓰고, 가격의 오르내림은 의미색이 전담한다.
+ * 브랜드 색을 바꾸더라도 의미색은 따라 바뀌지 않는다.
+ */
+:root {
+  /* ── 브랜드 ── */
+  --color-brand: #0f766e;
+  --color-brand-hover: #115e59;
+  /* 선택된 행·탭의 옅은 배경 */
+  --color-brand-tint: #f0fdfa;
+  /* 작은 장식 전용. 흰 배경 위 본문 글자에는 쓰지 않는다 (대비 부족) */
+  --color-brand-accent: #5eead4;
+
+  /* ── 표면 ── */
+  --color-page: #f8fafc;
+  --color-surface: #ffffff;
+  --color-subtle: #f1f5f9;
+
+  /* ── 글자 ── */
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-text-faint: #94a3b8;
+
+  /* ── 경계 ── */
+  --color-border: #e2e8f0;
+  /* 입력·선택 컨트롤은 더 진한 테두리로 구분한다 (식별 대비 3:1) */
+  --color-border-control: #64748b;
+
+  /*
+   * ── 의미색 ──
+   * 한국 시장 관례대로 상승이 적색, 하락이 청색이다.
+   * 매수는 상승과, 매도는 하락과 같은 색을 쓴다.
+   * 색만으로 전달하지 않는다. 부호(+/-)와 글자를 항상 함께 표시한다.
+   */
+  --color-price-up: #c0364f;
+  --color-price-down: #2457c5;
+  --color-price-flat: #475569;
+
+  --color-success: #166534;
+  --color-warning: #92400e;
+  --color-danger: #b91c1c;
+
+  /* ── 간격 ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* ── 모서리 ── */
+  --radius-badge: 6px;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+
+  /* ── 글꼴 ──
+   * Pretendard가 설치되어 있으면 쓰고, 없으면 Noto Sans KR → 시스템 한글 글꼴 순서다.
+   * 외부 CDN을 불러오지 않는다. 컨테이너가 네트워크 없이도 같은 화면을 그려야 한다.
+   */
+  --font-sans: "Pretendard Variable", Pretendard, "Noto Sans KR", -apple-system,
+    BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 19px;
+  --font-size-xl: 24px;
+  /* 현재가 전용. 화면에서 가장 큰 숫자다 */
+  --font-size-price: 30px;
+
+  /* ── 컨트롤 크기 ── */
+  --control-height: 40px;
+  --cta-height: 44px;
+
+  /* 그림자는 오버레이 중심으로 제한한다 */
+  --shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.03);
+  --shadow-overlay: 0 24px 64px rgba(15, 23, 42, 0.18);
+  --shadow-toast: 0 8px 32px rgba(15, 23, 42, 0.28);
+}

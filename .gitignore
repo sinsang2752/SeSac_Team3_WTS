@@ -1,0 +1,29 @@
+# ---- Secrets / local env ----
+.env
+*.local
+!.env.example
+
+# ---- Java / Gradle ----
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+out/
+*.log
+
+# ---- Node / Frontend ----
+node_modules/
+dist/
+dist-ssr/
+.vite/
+coverage/
+
+# ---- IDE ----
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+
+# ---- Docker volumes (bind mounts) ----
+infra/docker/.data/
+infra/.run/

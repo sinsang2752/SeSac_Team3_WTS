@@ -1,0 +1,126 @@
+# 애플리케이션까지 컨테이너로 띄운다. (CLAUDE.md §32 – "후반에는 Docker Compose 전체 실행도 지원한다")
+#
+# 평소 개발은 docker-compose.yml(인프라만) + 로컬 프로세스가 빠르다.
+# 이 파일은 "배포하면 실제로 도는가"를 확인하는 용도다. CI가 만든 이미지와 같은 것을 쓴다.
+#
+#   ./infra/scripts/build-images.sh              # 이미지 빌드
+#   docker compose -f docker-compose.yml -f docker-compose.app.yml up -d
+#   open http://localhost:${FRONTEND_PORT:-5173}
+#
+# 서비스끼리는 컨테이너 이름으로 찾는다. 호스트의 .env 포트 설정과 무관하다.
+
+name: wts
+
+services:
+  gateway-service:
+    image: wts/gateway-service:${WTS_IMAGE_TAG:-local}
+    depends_on:
+      market-service:
+        condition: service_healthy
+      trading-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+    environment:
+      # 컨테이너 안에서는 포트를 고정한다. 외부 노출만 .env 를 따른다.
+      GATEWAY_PORT: 8080
+      MARKET_SERVICE_URI: http://market-service:8081
+      TRADING_SERVICE_URI: http://trading-service:8082
+      USER_SERVICE_URI: http://user-service:8083
+      MARKET_SERVICE_WS_URI: ws://market-service:8081
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?AUTH_TOKEN_SECRET 가 필요하다}
+      CORS_ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:-5173}
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  market-service:
+    image: wts/market-service:${WTS_IMAGE_TAG:-local}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    environment:
+      MARKET_PORT: 8081
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_MARKET_DATABASE: ${MYSQL_MARKET_DATABASE:-wts_market}
+      MYSQL_USER: ${MYSQL_USER:-wts}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-wts}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      VALKEY_HOST: valkey
+      VALKEY_PORT: 6379
+      MARKET_PROVIDER: ${MARKET_PROVIDER:-mock}
+      KIS_ENVIRONMENT: ${KIS_ENVIRONMENT:-vts}
+      KIS_APP_KEY: ${KIS_APP_KEY:-}
+      KIS_APP_SECRET: ${KIS_APP_SECRET:-}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  trading-service:
+    image: wts/trading-service:${WTS_IMAGE_TAG:-local}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    environment:
+      TRADING_PORT: 8082
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_TRADING_DATABASE: ${MYSQL_TRADING_DATABASE:-wts_trading}
+      MYSQL_USER: ${MYSQL_USER:-wts}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-wts}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      VALKEY_HOST: valkey
+      VALKEY_PORT: 6379
+      TRADING_INITIAL_CASH: ${TRADING_INITIAL_CASH:-100000000}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  user-service:
+    image: wts/user-service:${WTS_IMAGE_TAG:-local}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      USER_PORT: 8083
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER_DATABASE: ${MYSQL_USER_DATABASE:-wts_user}
+      MYSQL_USER: ${MYSQL_USER:-wts}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-wts}
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?AUTH_TOKEN_SECRET 가 필요하다}
+      AUTH_TOKEN_TTL: ${AUTH_TOKEN_TTL:-24h}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8083/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  frontend:
+    image: wts/frontend:${WTS_IMAGE_TAG:-local}
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"

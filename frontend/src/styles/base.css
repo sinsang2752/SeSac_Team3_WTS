@@ -1,0 +1,79 @@
+/* 리셋과 전역 타이포 (CLAUDE.md §30) */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-page);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  letter-spacing: -0.02em;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 키보드 포커스는 브랜드 색 2px 외곽선과 2px 간격이다 */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-badge);
+}
+
+/* 숫자는 자릿수가 흔들리지 않아야 한다. 표 안에서는 오른쪽 정렬한다 */
+.numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 등락·매매 방향. 색과 함께 부호나 글자를 반드시 같이 쓴다 */
+.price--up {
+  color: var(--color-price-up);
+}
+
+.price--down {
+  color: var(--color-price-down);
+}
+
+.price--flat {
+  color: var(--color-price-flat);
+}

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>learnstock – 모의투자</title>
+    <!--
+      원본 시안(docs/learnstock/reference/style.css)이 @import 로 불러오는 것과 같은 글꼴이다.
+      이 글꼴이 없으면 워드마크 폭과 줄 높이가 시안과 달라진다.
+      CSS @import 대신 link 를 쓰는 이유는 요청이 직렬로 늘어지지 않게 하려는 것뿐이고,
+      주소와 굵기 목록은 원본 그대로다. 닿지 않는 환경에서는 글꼴 스택의 다음 항목으로 넘어간다.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

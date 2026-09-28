@@ -1,0 +1,20 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+plugins {
+    // JDK 21이 로컬에 없으면 Gradle이 직접 내려받아 사용한다.
+    // 팀원은 ./gradlew 만 실행하면 동일한 JDK로 빌드된다.
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'wts-backend'
+
+include 'common'
+include 'gateway-service'
+include 'market-service'
+include 'trading-service'
+include 'user-service'

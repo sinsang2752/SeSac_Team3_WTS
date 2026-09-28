@@ -1,0 +1,274 @@
+/*
+ * 공통 골격 — 헤더 · 페이지 머리말 · 3열 작업 공간
+ * (docs/learnstock/ui-requirements.md §5.1, CLAUDE.md §27)
+ */
+
+/* ── 헤더 ────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  height: 72px;
+  padding: 0 var(--space-8);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header__nav {
+  display: flex;
+  align-self: stretch;
+  gap: var(--space-8);
+}
+
+.header__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.header__link--active {
+  color: var(--color-brand);
+}
+
+.header__link--active::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--color-brand);
+}
+
+.header__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.header__user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.header__avatar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-subtle);
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.header__nickname {
+  max-width: 10ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 시세 연결 상태 ──────────────────────────────────────── */
+.connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.connection__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-faint);
+}
+
+.connection--open .connection__dot {
+  background: var(--color-success);
+}
+
+.connection--connecting .connection__dot,
+.connection--reconnecting .connection__dot {
+  background: var(--color-warning);
+}
+
+.connection--closed {
+  color: var(--color-danger);
+  border-color: #fecaca;
+}
+
+.connection--closed .connection__dot {
+  background: var(--color-danger);
+}
+
+/* ── 본문 ────────────────────────────────────────────────── */
+.shell {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-8) 0;
+}
+
+.page-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
+.page-heading__title {
+  margin: 6px 0 4px;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+}
+
+.page-heading__subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* 헤더의 총 자산 요약 */
+.account-mini {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  text-align: right;
+}
+
+.account-mini__label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.account-mini__value {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.account-mini__profit {
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 3열 작업 공간 ───────────────────────────────────────── */
+.workspace {
+  display: grid;
+  grid-template-columns: 240px minmax(440px, 1fr) 330px;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.workspace__center,
+.workspace__right {
+  display: grid;
+  gap: var(--space-4);
+  /* 그리드 항목이 내용 폭 때문에 넘치지 않게 한다 */
+  min-width: 0;
+}
+
+/* 거래 화면이 아닌 단일 열 페이지 */
+.page {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.page--narrow {
+  max-width: 420px;
+  margin: var(--space-8) auto 0;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-6) 0;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
+}
+
+/* ── 좁은 화면 ───────────────────────────────────────────── */
+/* 1280px 이하에서는 3열을 억지로 줄이지 않고 관심종목을 가로 목록으로 접는다 */
+@media (max-width: 1280px) {
+  .workspace {
+    grid-template-columns: minmax(360px, 1fr) 320px;
+  }
+
+  .workspace__watch {
+    grid-column: 1 / -1;
+  }
+
+  .shell {
+    padding: var(--space-5) var(--space-5) 0;
+  }
+
+  .header {
+    padding: 0 var(--space-5);
+  }
+}
+
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* 주문 패널을 호가보다 위에 둔다. 좁은 화면에서도 CTA가 먼저 보여야 한다 */
+  .workspace__right {
+    order: -1;
+  }
+}
+
+@media (max-width: 680px) {
+  .header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: var(--space-3) var(--space-4) 0;
+    gap: var(--space-3);
+  }
+
+  .header__nav {
+    order: 3;
+    width: 100%;
+    justify-content: space-around;
+    gap: 0;
+    height: 44px;
+  }
+
+  .header__nickname {
+    display: none;
+  }
+
+  .shell {
+    padding: var(--space-4) var(--space-4) 0;
+  }
+
+  .page-heading {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  .account-mini {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+}

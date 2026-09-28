@@ -1,0 +1,2 @@
+com.team.wts.common.autoconfigure.WtsAuthAutoConfiguration
+com.team.wts.common.autoconfigure.WtsCommonAutoConfiguration

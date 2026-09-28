@@ -1,0 +1,80 @@
+plugins {
+    alias(libs.plugins.spring.boot) apply false
+    alias(libs.plugins.spring.dependency.management) apply false
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+
+    group = 'com.team.wts'
+    version = '0.0.1-SNAPSHOT'
+
+    repositories {
+        mavenCentral()
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(libs.versions.java.get() as int)
+        }
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:${libs.versions.springCloud.get()}"
+        }
+    }
+
+    dependencies {
+        // Health Check / Metrics – 모든 서비스 공통 (CLAUDE.md §47 Phase 0, §54)
+        implementation 'org.springframework.boot:spring-boot-starter-actuator'
+        implementation 'io.micrometer:micrometer-core'
+
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    // 단위 테스트와 통합 테스트를 나눈다 (CLAUDE.md §37).
+    //
+    // 통합 테스트는 Testcontainers로 MySQL/Kafka/Valkey를 띄운다. Docker가 필요하고 느리다.
+    // CI에서 "Backend Unit Test"가 먼저 깨지면 컨테이너를 띄우기 전에 멈출 수 있어야 한다.
+    // 구분 기준은 클래스 이름이 아니라 @Tag("integration")다.
+    // IntegrationTestBase에 붙어 있고 @Tag는 상속되므로 하위 클래스가 전부 포함된다.
+    tasks.named('test') {
+        useJUnitPlatform {
+            excludeTags 'integration'
+        }
+        testLogging {
+            events 'passed', 'skipped', 'failed'
+            exceptionFormat 'full'
+        }
+    }
+
+    tasks.register('integrationTest', Test) {
+        description = 'Testcontainers가 필요한 통합 테스트만 실행한다.'
+        group = 'verification'
+        useJUnitPlatform {
+            includeTags 'integration'
+        }
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        testLogging {
+            events 'passed', 'skipped', 'failed'
+            exceptionFormat 'full'
+        }
+        // 단위 테스트가 통과한 뒤에 돈다.
+        shouldRunAfter tasks.named('test')
+    }
+
+    // 로컬에서 ./gradlew build 는 여전히 전부 실행한다. 나눈 것은 CI를 위해서다.
+    tasks.named('check') {
+        dependsOn tasks.named('integrationTest')
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.compilerArgs << '-parameters'
+    }
+}

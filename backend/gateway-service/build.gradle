@@ -1,0 +1,8 @@
+// 클라이언트 Ingress 전용 (CLAUDE.md §6.1)
+// 주의: KIS OpenAPI 호출을 중계하지 않는다 (§0-9).
+// Gateway는 WebFlux 기반이므로 spring-boot-starter-web을 추가하지 않는다.
+dependencies {
+    implementation project(':common')
+
+    implementation 'org.springframework.cloud:spring-cloud-starter-gateway-server-webflux'
+}

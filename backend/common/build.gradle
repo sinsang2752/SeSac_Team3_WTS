@@ -1,0 +1,17 @@
+// 서비스들이 공유하는 최소한의 공통 코드.
+// 도메인 로직은 절대 여기 두지 않는다. 각 서비스의 도메인 패키지에 둔다 (CLAUDE.md §8).
+//
+// 실행 가능한 애플리케이션이 아니므로 bootJar를 끄고 일반 jar만 만든다.
+bootJar { enabled = false }
+jar { enabled = true }
+
+dependencies {
+    // servlet 전용 컴포넌트(TraceIdFilter, 예외 핸들러)는 compileOnly로 둔다.
+    // WebFlux 기반인 gateway-service는 이 클래스들을 로드하지 않는다
+    // (WtsCommonAutoConfiguration의 @ConditionalOnClass가 걸러낸다).
+    compileOnly 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-autoconfigure'
+    implementation 'org.slf4j:slf4j-api'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-web'
+}

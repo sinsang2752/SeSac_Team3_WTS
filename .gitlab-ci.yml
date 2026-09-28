@@ -1,0 +1,161 @@
+# GitLab CI (CLAUDE.md §37, §38, §47 Phase 7)
+#
+#   Push / Merge Request
+#         ↓
+#   lint         프론트엔드 정적 검사
+#         ↓
+#   test         프론트엔드 빌드 + 백엔드 컴파일 · 단위 테스트
+#         ↓
+#   build        백엔드 jar
+#         ↓
+#   integration  Testcontainers (MySQL · Kafka · Valkey)
+#         ↓
+#   docker       컨테이너 이미지 빌드
+#
+# 이미지 레지스트리 푸시, SonarQube, Argo CD는 MVP 이후다 (§38).
+
+stages:
+  - lint
+  - test
+  - build
+  - integration
+  - docker
+
+variables:
+  # Gradle 캐시를 작업 디렉터리 안에 둬야 job 사이에서 cache 로 넘길 수 있다.
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  # 데몬은 job 하나 돌고 사라진다. 띄우는 비용만 든다.
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+  GIT_DEPTH: "20"
+
+# ── 공통 조각 ────────────────────────────────────────────
+
+.frontend:
+  image: node:22-alpine
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - frontend/node_modules
+  before_script:
+    - cd frontend
+    - npm ci --prefer-offline --no-audit --fund=false
+
+.backend:
+  # JDK 21을 이미지에 포함한다. Gradle 툴체인 자동 다운로드는 CI에서 느리고 불안정하다.
+  image: eclipse-temurin:21-jdk
+  cache:
+    key:
+      files:
+        - backend/gradle/wrapper/gradle-wrapper.properties
+        - backend/gradle/libs.versions.toml
+    paths:
+      - .gradle/wrapper
+      - .gradle/caches
+  before_script:
+    - cd backend
+
+# ── lint ────────────────────────────────────────────────
+
+frontend:lint:
+  extends: .frontend
+  stage: lint
+  script:
+    - npx oxlint
+
+# ── test ────────────────────────────────────────────────
+
+frontend:build:
+  extends: .frontend
+  stage: test
+  script:
+    # tsc -b 가 타입 검사까지 한다. 빌드가 곧 타입 검증이다.
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist
+    expire_in: 1 day
+
+backend:unit-test:
+  extends: .backend
+  stage: test
+  script:
+    # Docker 없이 도는 것만 실행한다. @Tag("integration") 는 제외된다.
+    - ./gradlew test
+  artifacts:
+    when: always
+    paths:
+      - backend/*/build/reports/tests/test
+    reports:
+      junit:
+        - backend/*/build/test-results/test/TEST-*.xml
+    expire_in: 1 week
+
+# ── build ───────────────────────────────────────────────
+
+backend:assemble:
+  extends: .backend
+  stage: build
+  script:
+    - ./gradlew assemble
+  artifacts:
+    paths:
+      - backend/*/build/libs/*-SNAPSHOT.jar
+    expire_in: 1 day
+
+# ── integration ─────────────────────────────────────────
+
+backend:integration-test:
+  extends: .backend
+  stage: integration
+  services:
+    # Testcontainers 가 컨테이너를 띄우려면 Docker 데몬이 필요하다.
+    # dind 를 쓰려면 러너가 privileged 모드여야 한다 (config.toml).
+    - name: docker:27-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: "tcp://docker:2375"
+    # 빈 값이면 dind 가 TLS 없이 2375 로 연다.
+    DOCKER_TLS_CERTDIR: ""
+    # Testcontainers 가 컨테이너에 접속할 때 쓸 호스트 이름.
+    # dind 안에서 돌기 때문에 localhost 가 아니다.
+    TESTCONTAINERS_HOST_OVERRIDE: "docker"
+  script:
+    - ./gradlew integrationTest
+  artifacts:
+    when: always
+    paths:
+      - backend/*/build/reports/tests/integrationTest
+    reports:
+      junit:
+        - backend/*/build/test-results/integrationTest/TEST-*.xml
+    expire_in: 1 week
+
+# ── docker ──────────────────────────────────────────────
+
+docker:build:
+  stage: docker
+  image: docker:27-cli
+  services:
+    - name: docker:27-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: "tcp://docker:2375"
+    DOCKER_TLS_CERTDIR: ""
+  needs:
+    # jar 를 앞 단계에서 받아 쓴다. 이미지 안에서 다시 빌드하지 않는다.
+    - job: backend:assemble
+      artifacts: true
+    - job: backend:integration-test
+  script:
+    - |
+      for service in gateway-service market-service trading-service user-service; do
+        echo "▸ wts/${service}"
+        docker build -f backend/Dockerfile --build-arg "SERVICE=${service}" \
+          -t "wts/${service}:${CI_COMMIT_SHORT_SHA}" backend
+      done
+    - echo "▸ wts/frontend"
+    - docker build -t "wts/frontend:${CI_COMMIT_SHORT_SHA}" frontend
+    # 레지스트리 푸시는 MVP 이후다 (§38). 여기서는 Dockerfile 이 깨지지 않았는지만 본다.
+    - docker images "wts/*"

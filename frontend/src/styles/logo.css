@@ -1,0 +1,61 @@
+/*
+ * 런스톡 로고 — docs/learnstock/reference/style.css 원본 값 그대로.
+ *
+ * 값을 바꾸지 않는다. 시안과 다른 심볼이 되면 곧바로 티가 난다.
+ * 다만 .logo / .mark / .demo 는 흔한 이름이라, 전역 규칙과 섞이지 않도록
+ * .logo 아래로 한정해서 격리했다. 선언 내용은 원본과 같다.
+ */
+
+.logo {
+  display: flex;
+  align-items: center;
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -1.3px;
+  gap: 9px;
+
+  /*
+   * 원본에서 body로부터 상속받던 값이다.
+   * 이 프로젝트의 body는 글꼴 스택과 자간이 달라서, 상속에 맡기면 워드마크 폭과
+   * ↗ 글리프가 시안과 어긋난다. 그래서 로고에만 원본 값을 다시 지정한다.
+   */
+  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: normal;
+}
+
+.logo .mark {
+  height: 31px;
+  width: 31px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-brand);
+  border-radius: 9px;
+  color: white;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -4px;
+  padding-right: 6px;
+}
+
+.logo .mark span {
+  font-size: 20px;
+  margin: 5px 0 0 -1px;
+}
+
+.logo .demo {
+  font-size: 11px;
+  letter-spacing: -0.02em;
+  background: var(--color-brand-tint);
+  color: var(--color-brand);
+  padding: 5px 7px;
+  border-radius: 5px;
+  margin-left: 4px;
+  font-weight: 600;
+}
+
+@media (max-width: 650px) {
+  .logo {
+    font-size: 23px;
+  }
+}

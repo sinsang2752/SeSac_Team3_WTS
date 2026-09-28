@@ -1,0 +1,500 @@
+/*
+ * 거래 화면 (docs/learnstock/ui-requirements.md §5)
+ * 검색·관심종목 / 현재가·차트·호가 / 주문 패널
+ */
+
+/* ── 검색과 관심종목 ─────────────────────────────────────── */
+.stocklist__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--space-3);
+  height: var(--control-height);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-page);
+}
+
+.stocklist__search:focus-within {
+  border-color: var(--color-brand);
+}
+
+.stocklist__search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  font-size: var(--font-size-sm);
+}
+
+.stocklist__search-icon {
+  color: var(--color-text-faint);
+  font-size: var(--font-size-md);
+  line-height: 1;
+}
+
+.stocklist__legend {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 var(--space-4) var(--space-2);
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
+}
+
+.stocklist__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.stockrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-right: var(--space-2);
+  border-left: 3px solid transparent;
+}
+
+.stockrow:hover {
+  background: var(--color-page);
+}
+
+.stockrow--selected {
+  border-left-color: var(--color-brand);
+  background: var(--color-brand-tint);
+}
+
+.stockrow__select {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3) var(--space-2) var(--space-3) var(--space-4);
+  text-align: left;
+}
+
+.stockrow__name {
+  display: block;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stockrow__symbol {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.stockrow__quote {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.stockrow__price {
+  display: block;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.stockrow__rate {
+  display: block;
+  margin-top: 3px;
+  font-size: var(--font-size-xs);
+}
+
+/* 별은 관심종목만 바꾼다. 행 선택과 분리한다 */
+.star {
+  padding: var(--space-1);
+  color: var(--color-text-faint);
+  font-size: var(--font-size-md);
+  line-height: 1;
+}
+
+.star--on {
+  color: var(--color-brand);
+}
+
+.star:disabled {
+  opacity: 0.5;
+}
+
+/* 좁은 화면에서는 관심종목이 가로로 스크롤되는 띠가 된다 */
+@media (max-width: 1280px) {
+  .workspace__watch .stocklist__legend {
+    display: none;
+  }
+
+  .workspace__watch .panel__head {
+    padding-bottom: var(--space-2);
+  }
+
+  .stocklist__rows {
+    display: flex;
+    max-height: none;
+    overflow-x: auto;
+    padding: 0 var(--space-3) var(--space-3);
+    gap: var(--space-2);
+  }
+
+  .stockrow {
+    flex: 0 0 auto;
+    min-width: 190px;
+    border-left: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+  }
+
+  .stockrow__select {
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+/* ── 종목 헤더와 현재가 ──────────────────────────────────── */
+.quote__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-5) 0;
+}
+
+.quote__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.quote__logo {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+  font-weight: 800;
+}
+
+.quote__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-lg);
+}
+
+.quote__symbol {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.quote__price-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.quote__price {
+  font-size: var(--font-size-price);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.quote__change {
+  font-size: var(--font-size-sm);
+}
+
+.quote__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: var(--space-3) 0 var(--space-5);
+  padding: 0 var(--space-5);
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
+}
+
+.quote__stats dt {
+  display: inline;
+}
+
+.quote__stats dd {
+  display: inline;
+  margin: 0 0 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 차트 ────────────────────────────────────────────────── */
+.chart__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
+}
+
+.chart__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.chart__interval {
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-badge);
+  background: var(--color-brand-tint);
+  color: var(--color-brand);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.chart {
+  position: relative;
+}
+
+.chart__canvas {
+  height: 300px;
+}
+
+/* 로딩·빈·오류는 캔버스 위를 덮는다. 캔버스는 항상 제 크기를 유지해야 한다 */
+.chart__state {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  background: var(--color-surface);
+  text-align: center;
+}
+
+/* ── 호가 ────────────────────────────────────────────────── */
+.book__rows {
+  display: grid;
+}
+
+.book__row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+/* 잔량 막대. 매도는 옅은 파랑, 매수는 옅은 빨강 */
+.book__depth {
+  position: absolute;
+  inset-block: 1px;
+  right: 0;
+  background: currentColor;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.book__price {
+  font-weight: 600;
+  z-index: 1;
+}
+
+.book__quantity {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  z-index: 1;
+}
+
+.book__row:hover .book__price {
+  text-decoration: underline;
+}
+
+.book__current {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-5);
+  border-block: 1px solid var(--color-border);
+  background: var(--color-page);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.book__current strong {
+  font-size: var(--font-size-base);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.book__section {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.book__section--ask {
+  color: var(--color-price-down);
+}
+
+.book__section--bid {
+  color: var(--color-price-up);
+}
+
+.book__hint {
+  padding: 0 var(--space-5) var(--space-3);
+  margin: 0;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
+}
+
+/* ── 주문 패널 ───────────────────────────────────────────── */
+.order__form {
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.order__types {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+}
+
+.order__availability {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.order__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.order__total strong {
+  color: var(--color-text);
+  font-size: var(--font-size-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.order__note {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
+  line-height: 1.7;
+  text-align: center;
+}
+
+.order__quick {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.order__quick .btn {
+  flex: 1;
+  min-height: 28px;
+  padding: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
+/* 접수와 체결을 구분해서 알린다 */
+.order__feedback {
+  margin: var(--space-3) var(--space-4) 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--color-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.order__feedback--filled {
+  background: #ecfdf3;
+  color: var(--color-success);
+}
+
+.order__feedback--pending {
+  background: var(--color-brand-tint);
+  color: var(--color-brand-hover);
+}
+
+.order__feedback--unknown {
+  background: #fffbeb;
+  color: var(--color-warning);
+}
+
+.order__feedback--error {
+  background: #fef2f2;
+  color: var(--color-danger);
+}
+
+/* 로그인 전에는 주문 자리에 안내를 보여준다 */
+.order__locked {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  padding: var(--space-5);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+/* ── 하단 탭 ─────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: var(--space-6);
+  padding: 0 var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+}
+
+.tabs__tab {
+  padding: var(--space-4) 0 var(--space-3);
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+  white-space: nowrap;
+}
+
+.tabs__tab[aria-selected='true'] {
+  color: var(--color-brand);
+  border-bottom-color: var(--color-brand);
+  font-weight: 700;
+}
+
+.tabs__count {
+  margin-left: var(--space-1);
+  font-size: var(--font-size-xs);
+}

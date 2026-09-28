@@ -1,0 +1,153 @@
+server:
+  port: ${MARKET_PORT:8081}
+  shutdown: graceful
+
+spring:
+  application:
+    name: market-service
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+  # 1분봉 저장 (CLAUDE.md §22, §23)
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_MARKET_DATABASE:wts_market}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
+    username: ${MYSQL_USER:wts}
+    password: ${MYSQL_PASSWORD:wts}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: market-service-pool
+      maximum-pool-size: 10
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+
+  # Valkey – 최신 시세/호가 캐시 (CLAUDE.md §18)
+  data:
+    redis:
+      host: ${VALKEY_HOST:localhost}
+      port: ${VALKEY_PORT:6379}
+      timeout: 2s
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      properties:
+        # 타입 헤더를 붙이지 않는다. 다른 서비스가 자기 payload 클래스로 읽을 수 있어야 한다.
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: market-service
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # 메시지는 문자열로 받아 Consumer가 직접 역직렬화한다 (MarketPriceUpdatedConsumer 주석 참고).
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+# 한국투자증권 OpenAPI (CLAUDE.md §19, §20). market.provider=kis 일 때만 쓰인다.
+# 자격증명은 환경변수로만 들어온다. 기본값을 두지 않는다 (§33, §52).
+kis:
+  # vts: 모의투자 / real: 실전투자. 도메인도 앱키도 서로 다르다.
+  environment: ${KIS_ENVIRONMENT:vts}
+  app-key: ${KIS_APP_KEY:}
+  app-secret: ${KIS_APP_SECRET:}
+  auth:
+    # 승인키 재발급 주기. KIS 유효기간(24시간)보다 짧게 잡는다.
+    # 만료된 키로 등록하면 오류 없이 시세만 끊긴다.
+    approval-key-ttl: ${KIS_APPROVAL_KEY_TTL:12h}
+  rest:
+    # 비워두면 environment의 기본 도메인을 쓴다.
+    base-url: ${KIS_REST_BASE_URL:}
+    connect-timeout: 5s
+    read-timeout: 10s
+    # KIS는 초당 거래건수를 제한한다. 기동 시 종목별 시세를 연달아 조회하면 걸린다.
+    request-interval: ${KIS_REST_REQUEST_INTERVAL:1s}
+  websocket:
+    url: ${KIS_WEBSOCKET_URL:}
+    # 종목 하나에 체결가·호가 두 건이 등록된다. 숫자를 코드에 박지 않는다 (§20).
+    subscription-limit: ${KIS_SUBSCRIPTION_LIMIT:40}
+    reconnect-initial-delay: 1s
+    reconnect-max-delay: 30s
+    # 체결이 몰리면 한 프레임에 여러 건이 묶여 온다. 기본 8KB로는 끊긴다.
+    max-text-message-size: ${KIS_MAX_TEXT_MESSAGE_SIZE:512KB}
+    # 이 시간 동안 아무 메시지(heartbeat 포함)도 없으면 죽은 연결로 보고 다시 붙는다.
+    stale-timeout: ${KIS_STALE_TIMEOUT:90s}
+    # 스트림 상태를 주기적으로 남긴다. 끊긴 뒤 원인을 되짚으려면 평소 기록이 있어야 한다.
+    health-log-interval: ${KIS_HEALTH_LOG_INTERVAL:1m}
+
+market:
+  # mock: KIS 자격증명 없이 동작하는 기본 모드 (CLAUDE.md §0-4, §31)
+  # kis : 한국투자증권 OpenAPI 연동 (Phase 6)
+  provider: ${MARKET_PROVIDER:mock}
+
+  # 구독 대상 고정 종목 (CLAUDE.md §21, §31).
+  # Dynamic Subscription은 이후 단계에서 붙인다.
+  #
+  # previous-close 는 Mock 모드의 출발 가격이다. kis 모드에서는 쓰이지 않는다
+  # (실제 전일 종가가 시세에 실려 온다).
+  stocks:
+    - symbol: "005930"
+      name: "삼성전자"
+      market: KOSPI
+      previous-close: 274000
+    - symbol: "000660"
+      name: "SK하이닉스"
+      market: KOSPI
+      previous-close: 1834000
+    - symbol: "035420"
+      name: "NAVER"
+      market: KOSPI
+      previous-close: 197900
+    - symbol: "035720"
+      name: "카카오"
+      market: KOSPI
+      previous-close: 33200
+    - symbol: "005380"
+      name: "현대차"
+      market: KOSPI
+      previous-close: 359000
+
+  mock:
+    tick-interval: ${MARKET_MOCK_TICK_INTERVAL:1s}
+    # 한 틱당 변동률 0.1% ~ 0.5% (CLAUDE.md §31)
+    min-change-rate: 0.001
+    max-change-rate: 0.005
+    # 시드를 주면 가격 흐름이 재현된다. 비우면 실행마다 달라진다.
+    seed: ${MARKET_MOCK_SEED:}
+
+  price:
+    # 이 시간을 넘긴 시세는 stale. 시장가 주문 거절 기준 (CLAUDE.md §11).
+    max-age: 5s
+
+  candle:
+    # 시세가 끊긴 종목의 봉을 닫아주는 주기
+    sweep-interval-ms: 30000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%X{traceId:-}] %logger{36} - %msg%n"

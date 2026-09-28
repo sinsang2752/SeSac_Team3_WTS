@@ -1,0 +1,97 @@
+/*
+ * 내 자산 · 거래내역 (docs/learnstock/ui-requirements.md §7, §8)
+ */
+
+.asset-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.asset-card {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  padding: var(--space-5);
+}
+
+.asset-card__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+}
+
+.asset-card__value {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+.asset-card__note {
+  margin: 0;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-sm);
+}
+
+/* 총 자산 카드만 브랜드 색으로 채운다 */
+.asset-card--primary {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: #fff;
+}
+
+.asset-card--primary .asset-card__label,
+.asset-card--primary .asset-card__note {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* 예약금은 예수금에 포함된 금액이다. 한 줄로 관계를 보여준다 */
+.asset-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  padding: var(--space-5);
+}
+
+.asset-breakdown .pair {
+  min-width: 200px;
+  flex: 1;
+}
+
+/* 용어 도움말 */
+.hint-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--color-subtle);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+}
+
+.asset-card--primary .hint-mark {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+@media (max-width: 1100px) {
+  .asset-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .asset-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .asset-card__value {
+    font-size: var(--font-size-lg);
+  }
+}

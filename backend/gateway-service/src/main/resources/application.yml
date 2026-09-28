@@ -1,0 +1,99 @@
+server:
+  port: ${GATEWAY_PORT:8080}
+  shutdown: graceful   # Graceful Shutdown (CLAUDE.md §54)
+
+spring:
+  application:
+    name: gateway-service
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # 라우팅 규칙 (CLAUDE.md §6.1)
+          #
+          # DedupeResponseHeader는 HTTP 라우트에만 건다.
+          # downstream과 게이트웨이가 같은 헤더(X-Trace-Id 등)를 각각 실어 중복되는 것을 막는 필터인데,
+          # default-filters로 두면 WebSocket 라우트에도 적용된다. 업그레이드 핸드셰이크가 끝나면
+          # 응답 헤더가 읽기 전용이 되어 UnsupportedOperationException으로 연결이 끊긴다.
+          routes:
+            - id: market-service
+              uri: ${MARKET_SERVICE_URI:http://localhost:8081}
+              predicates:
+                - Path=/api/market/**
+              filters:
+                - DedupeResponseHeader=X-Trace-Id Vary Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+
+            - id: trading-service
+              uri: ${TRADING_SERVICE_URI:http://localhost:8082}
+              predicates:
+                - Path=/api/trading/**
+              filters:
+                - DedupeResponseHeader=X-Trace-Id Vary Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+
+            - id: user-service
+              uri: ${USER_SERVICE_URI:http://localhost:8083}
+              predicates:
+                - Path=/api/users/**
+              filters:
+                - DedupeResponseHeader=X-Trace-Id Vary Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+
+            # 실시간 시세 WebSocket (CLAUDE.md §25). 응답 헤더를 건드리는 필터를 붙이지 않는다.
+            - id: market-websocket
+              uri: ${MARKET_SERVICE_WS_URI:ws://localhost:8081}
+              predicates:
+                - Path=/ws/market/**
+
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+                allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+                allowedHeaders: "*"
+                allowCredentials: true
+                maxAge: 3600
+
+          # Rate Limiting은 구조만 마련한다 (CLAUDE.md §6.1).
+          # Redis RateLimiter는 Valkey 연동과 함께 MVP 후반에 활성화한다.
+
+wts:
+  auth:
+    # user-service가 토큰을 발급하고 gateway가 검증한다. 두 서비스가 같은 값을 써야 한다.
+    # 기본값을 두지 않는다. 미설정 시 기동 단계에서 실패한다 (CLAUDE.md §52).
+    secret: ${AUTH_TOKEN_SECRET}
+  gateway:
+    auth:
+      # 인증 없이 통과시킬 경로
+      public-paths:
+        - /api/users/mock-login
+        - /actuator/**
+        # 시세는 사용자별 데이터가 아니라 공개 정보다. 또한 브라우저 WebSocket 핸드셰이크에는
+        # Authorization 헤더를 실을 수 없다. 자세한 배경은 ADR-0007 참고.
+        - /api/market/**
+        - /ws/market/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging:
+  # Gateway는 리액티브라 MDC를 쓰지 않는다(TraceIdWebFilter 주석 참고).
+  # traceId는 X-Trace-Id 헤더로 downstream에 전달되고, 거기서 로그에 찍힌다.
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n"
+  level:
+    org.springframework.cloud.gateway: INFO
