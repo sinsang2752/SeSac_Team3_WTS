@@ -2,8 +2,6 @@
 
 실제 한국 주식시장 시세를 기반으로 가상 자금으로 시장가/지정가 주문을 연습하는 실시간 모의투자 WTS.
 
-구현 지침과 전체 설계는 [CLAUDE.md](CLAUDE.md)를 따른다.
-
 > **현재 진행 단계: Phase 7 – CI 완료 (MVP 전체 구현 완료)**
 > Phase 0(모노레포 · 인프라 · 서비스 골격) → Phase 1(Mock Login · 가상 계좌 1억원)
 > → Phase 2(Mock 시세 · Valkey · Kafka · 1분봉 · WebSocket · 실시간 가격 화면)
