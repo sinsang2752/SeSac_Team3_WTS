@@ -6,6 +6,16 @@
 > 디자인: **Figma에서 별도 설계**한다. Claude Code는 디자인을 임의로 과도하게 만들지 말고, 기능 중심의 React 컴포넌트와 명확한 UI 구조를 구현한다.
 > UI/UX 참고 방향: **토스증권 WTS**, **KB 계열 증권 WTS 스타일**
 > 주의: 특정 서비스의 UI를 그대로 복제하지 말고, 정보 구조와 사용자 흐름만 참고한다.
+>
+> **현재 단계: MVP(Phase 0~7) 완료 → Phase 8 실서비스 전환 (§56~§61).**
+> Phase 8의 기준은 §56~§61이다. 앞 섹션과 충돌하면 §56~§61을 따른다.
+>
+> **이 서비스는 무조건 모의투자다 (§62).** 실제 주문·계좌·자금은 없고, 체결은 서비스 안에서 시뮬레이션한다.
+> §62는 모든 섹션보다 우선한다. Phase 9 이후 전체 로드맵은 §63이다.
+> Cognito는 나중에(공개 배포 직전, Phase 11) 붙인다. 그 전에는 배포하지 않는다.
+>
+> **섹션 번호를 바꾸지 않는다.** 코드 주석과 문서가 `§번호`로 이 문서를 700곳 넘게 참조한다.
+> 섹션을 중간에 끼워 넣거나 번호를 당기지 말고, 새 내용은 끝에 새 번호로 덧붙인다.
 
 ---
 
@@ -16,7 +26,7 @@
 아래 원칙을 반드시 지킨다.
 
 1. **MVP가 먼저 동작하도록 구현한다.**
-2. AWS/GCP 멀티클라우드, DR, Cognito MRR, 고가용성 Kafka 등은 MVP 완료 후 확장한다.
+2. AWS/GCP 멀티클라우드, DR, 고가용성 Kafka 등은 MVP 완료 후 확장한다 (§63). Cognito는 공개 배포 직전에 붙인다 (§62.4).
 3. 로컬 개발 환경에서 `docker compose up` 후 주요 기능이 실행되어야 한다.
 4. 외부 한국투자증권 API 자격증명이 없어도 **Mock Market Mode**로 전체 서비스가 동작해야 한다.
 5. 비즈니스 로직을 Controller, Repository, Kafka Consumer에 흩뿌리지 않는다.
@@ -30,12 +40,16 @@
 13. 구현이 복잡해질 경우 “실서비스 수준 기능”보다 “정확하게 동작하는 MVP”를 우선한다.
 14. 새로운 라이브러리를 추가하기 전에 기존 스택으로 해결할 수 있는지 확인한다.
 15. 모든 주요 구현은 테스트 가능하게 작성한다.
+16. **이 서비스는 무조건 모의투자다.** 실제 주문·계좌·자금을 만들지 않는다. 체결은 서비스 안의 시뮬레이션이고, KIS는 시세 전용(모의투자 vts 환경)으로만 쓴다 (§62).
+17. Amazon Cognito는 나중에 붙인다. 그 전까지는 Mock Login을 쓰고, Cognito 없이 배포하지 않는다 (§62.4).
 
 ---
 
 # 1. 프로젝트 한 줄 설명
 
 **실제 한국 주식시장 시세를 기반으로 사용자가 가상 자금을 이용해 시장가/지정가 주문을 연습할 수 있는 실시간 모의투자 WTS**
+
+> 실제 체결은 일어나지 않는다. 실제인 것은 시세뿐이다 (§62).
 
 ---
 
@@ -71,6 +85,7 @@
 - Kafka가 중단되었다가 복구되어도 주요 거래 DB 상태가 손상되지 않는다.
 - 동일 주문 요청이 중복 생성되지 않는다.
 - 사용자의 예수금은 음수가 될 수 없다.
+  - Phase 14(미수 · 신용)에서 "미수 · 신용 한도 안에서만"으로 다시 정의한다 (§63).
 - 보유한 수량보다 많이 매도할 수 없다.
 - Market Service 장애가 Trading DB 정합성을 깨뜨리지 않는다.
 
@@ -89,6 +104,7 @@
 - 파생상품
 - 공매도
 - 완전한 호가 기반 Matching Engine
+  - Phase 8의 체결 엔진은 시세를 보고 체결을 판정하는 모의 체결 엔진이다. 사용자 간 매칭은 여전히 범위 밖이다 (§56.4, §58)
 - 복잡한 부분체결
 - Event Sourcing
 - Saga 기반 분산 트랜잭션
@@ -99,6 +115,10 @@
 - 운영 수준 Kafka Multi-Cluster DR
 - 모바일 앱
 - Figma 없이 임의로 복잡한 UI 디자인
+
+> **MVP 이후 →** 실제 주문 · 계좌 · 현금 입출금 · KRX 직접 연결 · 청산/결제는 영구 제외다 (§62.1).
+> Cognito는 공개 배포 직전(Phase 11), Cognito MRR은 DR(Phase 12)에서 한다. 나머지도 §63 로드맵에 넣었다.
+> Event Sourcing · Saga는 기능이 아니라 설계 선택이라 §46을 따른다. Active-Active · RPO 0을 하지 않는 이유는 §63.2.
 
 ---
 
@@ -237,6 +257,7 @@ Tempo
 - 인증 필터
 - CORS
 - Rate Limiting은 구조만 마련
+  - Phase 10에서 실제로 적용한다 (§63)
 - 공통 Trace ID 생성
 - REST 요청 라우팅
 - WebSocket Route
@@ -270,6 +291,7 @@ Tempo
 - 1분봉 생성
 - WTS WebSocket 실시간 송신
 - Mock Market Mode 제공
+- (Phase 8) 종목 마스터 동기화 · 수요 기반 계층형 구독 (§57)
 
 중요:
 
@@ -302,6 +324,8 @@ trading-service
 
 별도의 마이크로서비스로 쪼개지 않는다.
 
+> **Phase 8 →** 체결 엔진(`engine/`)도 trading-service 안의 모듈로 둔다 (§58.1).
+
 이유:
 
 ```text
@@ -330,7 +354,7 @@ MVP 인증은 아래 중 하나를 선택한다.
 3. Amazon Cognito 연동
 ```
 
-Cognito는 MVP 완료 후 붙여도 된다.
+그 전까지는 1번 Mock Login을 쓴다. Cognito는 공개 배포 직전(Phase 11)에 붙인다 (§62.4).
 
 ---
 
@@ -502,6 +526,9 @@ REJECTED
 
 MVP에서는 `PARTIALLY_FILLED`는 선택 기능이다.
 
+> **Phase 8 →** 장 마감 만료 상태 `EXPIRED`를 추가한다 (§59.3).
+> **Phase 9 →** `PARTIALLY_FILLED`를 넣는다. 호가 잔량 기반 부분체결이다 (§63).
+
 ## 9.7 주문 종류
 
 ```text
@@ -564,6 +591,9 @@ MVP:
 market.price.max-age = 5 sec
 ```
 
+> **Phase 8 →** 시장가도 HTTP 요청 안에서 체결하지 않는다. 접수(`202` + `ACCEPTED`) 후 체결 엔진이 체결한다.
+> 신선한 시세를 기다리는 시간 상한과 매수 예약금 규칙은 §58.3.
+
 ---
 
 # 12. 지정가 체결 규칙
@@ -593,6 +623,8 @@ market.price.updated
 ```
 
 이벤트 수신 시 미체결 주문을 검사한다.
+
+> **Phase 8 →** 지정가는 호가단위의 배수이고 가격제한폭 안이어야 한다 (§59). 미체결 검사는 체결 엔진이 한다 (§58).
 
 ---
 
@@ -694,6 +726,9 @@ ledger.created
 audit.logged
 ```
 
+> **Phase 8 →** `order.rejected`, `order.expired`, `order.open.snapshot`, `order.accepted.dlq`를 추가한다.
+> `order.*` · `execution.completed`의 메시지 키를 종목코드로 바꾸고, 토픽은 코드로 명시해 만든다 (§58.4).
+
 모든 Event에 아래 Metadata를 넣는다.
 
 ```json
@@ -736,6 +771,9 @@ eventId
 execution.completed.dlq
 ```
 
+> **Phase 8 →** DLQ는 체결 엔진 입력(`order.accepted.dlq`)부터 적용한다.
+> 중복 방지는 eventId 테이블이 아니라 주문 상태 머신이 한다 (ADR-0011, §58.5).
+
 ---
 
 # 18. Valkey 사용 원칙
@@ -769,6 +807,8 @@ Valkey를 다음 용도로 사용하지 않는다.
 ```
 
 위 데이터의 Source of Truth는 MySQL이다.
+
+> **Phase 8 →** 종목 메타 · 시세 수요 · 구독 배정 키를 추가한다 (§60.2). 모두 다시 만들 수 있는 상태다.
 
 ---
 
@@ -810,6 +850,8 @@ spring.profiles.active=kis
 
 로 전환 가능하게 한다.
 
+> **§62.3 →** KIS는 시세 전용이다. 주문 · 계좌 API를 부르지 않는다. 환경은 모의투자(vts)만 허용한다.
+
 ---
 
 # 20. 한국투자증권 WebSocket
@@ -835,6 +877,9 @@ kis:
     subscription-limit: 40
 ```
 
+> **Phase 8 →** 등록 · 해제가 수요에 따라 바뀐다. 재연결하면 그 시점의 배정을 복구한다.
+> REST 호출도 토큰 버킷 하나로 초당 한도를 지킨다 (`kis.rest.rate-limit-per-second`, §57.2).
+
 ---
 
 # 21. Subscription Manager
@@ -851,20 +896,11 @@ OR
 system_required = true
 ```
 
-MVP에서는 처음에는 고정 종목 목록으로 시작해도 된다.
+MVP(Phase 0~7)는 고정 종목 목록(`market.stocks`)으로 시작했다.
 
-예:
-
-```yaml
-market:
-  default-symbols:
-    - "005930"
-    - "000660"
-    - "035420"
-    - "035720"
-```
-
-이후 Dynamic Subscription으로 발전시킨다.
+> **Phase 8 →** 고정 목록을 없애고 수요 기반 계층형 구독(실시간 · 폴링 · 스냅샷)으로 바꾼다. 상세는 §57.2.
+> 위의 세 조건은 우선순위가 붙은 수요 신호로 구체화된다:
+> 시장가 대기 주문 > FOCUS 시청자 > 미체결 지정가 주문 > LIST 시청자 > 고정 종목.
 
 ---
 
@@ -897,6 +933,8 @@ MVP에서 체결 데이터가 부족하면 Mock Price Stream으로 캔들 생성
 ---
 
 # 23. Database Schema Outline
+
+> **Phase 8 →** market DB에 `stocks`(종목 마스터)가 생기고, `orders`에 인덱스와 `EXPIRED` 상태가 추가된다 (§60.1).
 
 ## users
 
@@ -1050,6 +1088,8 @@ Primary Key:
 
 # 24. REST API
 
+> **Phase 8 →** 종목 목록 페이지화, 배치 시세 조회 신설, 주문 접수 `202` (§60.4).
+
 ## User
 
 ```http
@@ -1155,6 +1195,8 @@ Server Orderbook:
 }
 ```
 
+> **Phase 8 →** `SUBSCRIBE`에 `mode: FOCUS | LIST`를 더한다 (생략하면 LIST). 세션당 구독 종목 수에 상한이 있다 (§57.3).
+
 ---
 
 # 26. Frontend Pages
@@ -1246,6 +1288,9 @@ WebSocket:
 체결 알림
 ```
 
+> **Phase 8 →** WebSocket은 화면에 보이는 종목만 구독한다.
+> 체결 알림은 사용자 채널 없이 조회(`useFillWatcher`)로 확인한다 (§57.3). 사용자별 체결 푸시는 Phase 9 (§63).
+
 ---
 
 # 30. 디자인 구현 원칙
@@ -1302,6 +1347,9 @@ Mock Mode는:
 
 하지만 테스트는 Random에 의존하지 않게 Seed 또는 Fixed Sequence 사용 가능하도록 한다.
 
+> **Phase 8 →** 고정 5종목이 아니라 종목 마스터 전체가 대상이다. 수요가 있는 종목만 가격을 만들고, 출발 가격은 마스터 기준가다.
+> 마스터는 저장소의 스냅샷 CSV로 채운다. 네트워크 없이 뜬다 (§57.1, §57.2).
+
 ---
 
 # 32. Local Docker Compose
@@ -1355,6 +1403,8 @@ MARKET_PROVIDER=mock
 ```
 
 Secret은 Git에 Commit하지 않는다.
+
+> **§62.3 →** `KIS_ACCOUNT_NO`는 필요 없다 (KIS 주문 API를 쓰지 않는다). `KIS_ENVIRONMENT`는 `vts`만 허용한다.
 
 ---
 
@@ -1489,6 +1539,8 @@ Argo CD
 
 를 추가한다.
 
+> **→ Phase 10~11 (§63).**
+
 ---
 
 # 39. Error Response
@@ -1515,6 +1567,8 @@ MARKET_PRICE_STALE
 ORDER_NOT_FOUND
 DUPLICATE_ORDER_REQUEST
 ```
+
+> **Phase 8 →** `INVALID_TICK_SIZE`, `PRICE_LIMIT_EXCEEDED`, `MARKET_CLOSED`, `SYMBOL_NOT_TRADABLE`을 추가한다 (§60.3).
 
 ---
 
@@ -1564,6 +1618,8 @@ audit.logged
 ```
 
 로 발행 가능하게 만든다.
+
+> **→ 아직 구현되지 않았다. Phase 9에서 넣는다 (§63).**
 
 ---
 
@@ -1679,6 +1735,10 @@ Service Mesh
 Multi-region Kafka
 Complex Matching Engine
 ```
+
+> **Phase 9 이후에도 유지한다.** 두 항목은 뜻을 좁힌다.
+> - Complex Matching Engine = 사용자 간 주문 매칭. 실제 호가 잔량으로 체결을 시뮬레이션하는 것(Phase 9)은 여기에 해당하지 않는다.
+> - Multi-region Kafka = 양방향 · 액티브 멀티리전. DR용 단방향 미러링(Phase 12)은 허용한다.
 
 ---
 
@@ -1812,14 +1872,29 @@ MARKET_PROVIDER=kis
 - Integration Test
 - Docker Build
 
+## Phase 8 – 실서비스 전환
+
+전 종목 · 계층형 구독 · Kafka 체결 엔진 · 거래 규칙. 네 단계(8-1 ~ 8-4)로 나눠 진행한다.
+범위 · 설계 · 순서 · 완료조건은 §56~§61.
+
+## Phase 9 ~ 16
+
+§63 로드맵을 따른다. 각 Phase를 시작하기 전에 상세 설계를 이 문서 끝에 덧붙인다.
+
 ---
 
-# 48. Phase 8 이후 확장
+# 48. Phase 9 이후 확장
+
+> 아래 항목은 §63 로드맵의 Phase 10~12에 배치했다. Amazon Cognito는 Phase 11의 첫 작업이다 (§62.4).
+>
+> 코드 주석 · 문서 9곳(`MockAuthToken`, `MockLoginService`, `LoginPanel`, `userStore`, `.env.example`,
+> ADR-0006, phase1 · phase3 아키텍처 문서)에 남은 "Phase 8에서 Cognito로 교체"는 이제 번호가 틀렸다.
+> Phase 8-1 작업 때 "Phase 11(공개 배포 직전)에서 Cognito로 교체"로 고친다.
 
 MVP 이후 별도 작업:
 
 ```text
-Amazon Cognito
+Amazon Cognito          → Phase 11, 공개 배포 직전 (§62.4)
 AWS EKS
 AWS RDS MySQL
 AWS ElastiCache/Valkey
@@ -1862,6 +1937,8 @@ MVP 최종 데모:
 14. 동일 Idempotency Key 요청은 중복 주문되지 않는다.
 15. Mock/KIS Market Provider를 설정만으로 변경할 수 있다.
 
+> **Phase 8 →** 6번 "즉시 체결된다"는 "접수 후 수 초 안에 체결된다"로 바뀐다 (§58). Phase 8의 완료 기준은 §56.5.
+
 ---
 
 # 50. Claude Code 작업 규칙
@@ -1876,6 +1953,12 @@ Claude Code는 작업 시작 전:
 6. 구현한다.
 7. 테스트한다.
 8. 테스트 결과를 보고한다.
+
+추가 규칙:
+
+- 이 문서의 섹션 번호는 바꾸지 않는다. 새 내용은 끝에 새 번호로 덧붙인다 (코드가 `§번호`로 참조한다).
+- 설계 결정을 바꾸면 `docs/decisions/`에 ADR을 남긴다. 기존 ADR을 대체하면 양쪽에 서로를 적는다.
+- API 계약을 바꾸면 명세를 다시 생성한다 (`./infra/scripts/generate-openapi.sh`, §60.4).
 
 ---
 
@@ -2015,3 +2098,782 @@ Multi-Cloud Disaster Recovery
 그러나 **MVP의 최우선 목표는 실제로 거래 흐름이 끝까지 동작하는 것**이다.
 
 Cloud / DR / Observability는 그 이후 확장한다.
+
+---
+
+# 56. Phase 8 – 실서비스 전환 개요
+
+> MVP(Phase 0~7)는 끝났다. Phase 8은 **설정 파일의 5종목을 실제 상장 전 종목으로 넓히고,
+> 체결을 Kafka 기반 엔진으로 옮기는 단계**다.
+>
+> §56~§61이 Phase 8의 기준이다. 앞 섹션과 충돌하면 §56~§61을 따른다.
+> 앞 섹션에는 바뀌는 곳마다 `Phase 8 →` 메모를 달아 두었다.
+
+## 56.1 목표
+
+```text
+1. 종목  설정 파일 5종목            → KOSPI · KOSDAQ 상장 주권 전 종목 (약 2,500개)
+2. 시세  기동 시 고정 구독          → 수요 기반 계층형 구독 (실시간 · 폴링 · 스냅샷)
+3. 체결  HTTP 요청 안에서 즉시 체결 → 접수와 체결 분리, Kafka 체결 엔진
+4. 규칙  지정가 0원 초과만 검사     → 호가단위 · 가격제한폭 · 장 운영시간 · 거래정지
+```
+
+## 56.2 왜 "전 종목 실시간 구독"이 아닌가
+
+KIS 실시간 WebSocket은 세션 하나당 등록 건수에 상한이 있다. 종목 하나에 체결 1건 + 호가 1건이 등록되므로
+실시간으로 받을 수 있는 종목은 20개 안팎이다. REST 시세 조회도 초당 건수 제한이 있다.
+앱키를 여러 개 써서 상한을 우회하지 않는다.
+
+그러므로 전 종목을 항상 실시간으로 두는 것은 불가능하고, 필요하지도 않다.
+사용자가 지금 보고 있거나 체결을 기다리는 종목만 신선하면 된다.
+
+```text
+전 종목     검색 · 조회 가능 (종목 마스터)
+보는 종목   실시간 또는 준실시간 시세
+주문 종목   체결 판정에 필요한 만큼 신선한 시세
+나머지      누가 조회할 때 스냅샷
+```
+
+상세 설계는 §57.
+
+## 56.3 현재 구현과 달라지는 점 (§50-3 보고)
+
+| 영역 | 현재 (Phase 7) | Phase 8 |
+|---|---|---|
+| 종목 마스터 | `application.yml`의 `market.stocks` 5종목 (`ConfiguredStockRepository`) | market DB `stocks` 테이블. KIS 종목정보 파일로 동기화 |
+| KIS 구독 | 기동 시 고정 목록 전부 등록 (`KisMarketDataAdapter.start`) | Subscription Manager가 수요에 따라 등록·해제 |
+| Mock 시세 | 설정 종목 전부 1초 틱 | 수요가 있는 종목만 틱. 출발 가격은 마스터 기준가 |
+| 프론트 구독 | 전체 종목을 받아 전부 WebSocket 구독 (`WtsPage`) | 화면에 보이는 종목만 구독. 목록은 검색 + 페이지 |
+| 시장가 주문 | HTTP 트랜잭션 안에서 즉시 체결, `201` + `FILLED` | 접수만 하고 `202` + `ACCEPTED`. 엔진이 체결 |
+| 지정가 자동 체결 | `MarketPriceUpdatedConsumer` → `PendingOrderExecutionService` | 이 경로를 체결 엔진으로 확장한다 (재사용) |
+| Kafka 토픽 | 브로커 자동 생성 (`KAFKA_NUM_PARTITIONS=3`). 주문 이벤트 키 = orderId | 코드로 명시 생성. 엔진 입력 토픽 키 = 종목코드 |
+| 호가단위 | `KrxTickSize`가 market-service에만 있고 Mock 가격에만 쓰인다. 주석과 달리 지정가 검증에는 안 쓰인다 | common으로 옮겨 지정가 검증에 쓴다 (§59) |
+| 미체결 조회 | `orders(symbol, status, order_type)` 인덱스 없음 | 인덱스 추가. 엔진이 틱마다 조회한다 |
+| 없는 종목 주문 | `MARKET_PRICE_UNAVAILABLE`로 뭉뚱그린다 | `SYMBOL_NOT_FOUND`로 구분한다 |
+
+유지하는 결정:
+
+```text
+ADR-0008  trading은 최신 시세를 Valkey에서 읽는다
+ADR-0009  잔고·포지션을 바꾸는 모든 경로는 계좌 행 비관적 락으로 시작한다 (취소 API도 이미 그렇다)
+ADR-0010  Kafka 발행은 Outbox를 거친다
+ADR-0011  중복 처리는 processed_events가 아니라 주문 상태 머신이 막는다
+```
+
+대체되는 결정: §21의 "MVP는 고정 종목 목록", ADR-0012 중 기동 시 고정 구독 부분.
+구현할 때 ADR을 새로 남긴다 (§61.3).
+
+## 56.4 Phase 8 범위 밖
+
+Phase 8에서는 하지 않고 이후 단계에서 한다 (§63):
+
+```text
+호가 잔량 기반 부분체결 · 슬리피지     Phase 9
+동시호가 · 시간외 거래                 Phase 9
+사용자별 체결 푸시 채널                Phase 9    Phase 8에서는 지금처럼 조회로 확인한다
+market-service 다중 인스턴스           Phase 10   KIS 연결은 앱키당 하나다
+ETF · ETN · ELW · 리츠 · 코넥스        Phase 13   호가단위 · 규칙이 다르다
+```
+
+하지 않는다 (§63.2): 사용자 간 주문 매칭, KIS 앱키 여러 개로 구독 상한 우회.
+
+## 56.5 성공 기준
+
+```text
+- 상장 주권 전 종목을 종목코드·이름 부분일치로 검색할 수 있다.
+- 어떤 종목이든 상세 화면을 열면 수 초 안에 시세가 보이고 갱신된다.
+- 실시간 슬롯이 꽉 차도 화면을 연 종목은 폴링으로 갱신된다.
+- 어떤 종목이든 시장가 주문은 체결되거나 정해진 이유로 거절된다. ACCEPTED로 계속 남지 않는다.
+- 실시간 구독하지 않는 종목의 지정가 주문도 가격 조건에 도달하면 체결된다 (폴링 주기만큼 늦을 수 있다).
+- Kafka가 멈춰도 주문 접수는 된다. Kafka가 돌아오면 쌓인 주문이 체결된다.
+- 같은 주문은 두 번 체결되지 않는다. 엔진 인스턴스가 여러 개여도 마찬가지다.
+- 체결 순서가 어떻게 되든 예수금은 음수가 되지 않는다.
+- KIS 자격증명 없이 Mock 모드로 위 전부가 동작한다 (§0-4). 네트워크 없이도 뜬다.
+```
+
+---
+
+# 57. 전 종목 시세 – 종목 마스터와 계층형 구독
+
+## 57.1 종목 마스터
+
+출처는 한국투자증권이 공개하는 종목정보 파일이다.
+
+```text
+kospi_code.mst.zip, kosdaq_code.mst.zip
+- 인증 없이 내려받는다. URL은 설정값으로 둔다.
+- cp949 인코딩, 줄마다 고정폭 레코드.
+- 필드 위치는 한국투자증권 open-trading-api 저장소의 종목정보 예제(stocks_info)로 확인한다.
+  추측해서 자르지 않는다. 실제 파일 일부를 테스트 픽스처로 두고 파서를 고정한다.
+```
+
+1차 범위는 KOSPI · KOSDAQ의 **주권**(보통주 · 우선주)이다. 증권그룹이 주권이 아닌 레코드는 건너뛴다.
+주권 외 상품은 Phase 13에서 넣는다 (§63).
+
+market DB의 `stocks` 테이블이 market-service 안에서 종목 마스터의 원본이다.
+
+```text
+stocks
+symbol          CHAR(6)       PK, 단축코드
+standard_code   CHAR(12)      표준코드 (ISIN)
+name            VARCHAR       한글 종목명
+market          VARCHAR       KOSPI | KOSDAQ
+base_price      DECIMAL       기준가. 가격제한폭과 Mock 출발 가격의 기준
+trading_halted  BOOLEAN       거래정지
+listed          BOOLEAN       파일에서 사라지면 false. 행은 지우지 않는다 (주문·포지션이 참조한다)
+synced_at       TIMESTAMP     UTC
+```
+
+동기화:
+
+```text
+- 매 영업일 장 시작 전 (설정 cron, 예: 08:00 KST). 기동 시 테이블이 비어 있으면 한 번
+- upsert. 파일에서 사라진 종목은 listed=false
+- 다운로드나 파싱이 실패하면 기존 데이터를 그대로 두고 경고를 남긴다. 테이블을 비우지 않는다
+- 동기화 후 종목 메타를 Valkey market:meta:{symbol} 에 쓴다 (§59.2에서 trading이 읽는다)
+```
+
+오프라인 · Mock · 테스트:
+
+```text
+- 마스터 파일에서 만든 스냅샷 CSV를 저장소에 함께 둔다. 다시 만드는 스크립트도 둔다.
+- market.provider=mock 이거나 내려받을 수 없으면 스냅샷으로 채운다.
+- 테스트는 스냅샷 일부만 담은 고정 픽스처를 쓴다. 네트워크에 의존하지 않는다.
+```
+
+검색:
+
+```text
+GET /api/market/stocks?keyword=&market=&page=0&size=20
+- keyword  종목코드 또는 이름 부분일치. 2,500행이라 DB LIKE로 충분하다. 검색 엔진을 들이지 않는다
+- size     최대 100
+- 응답     페이지 객체 { items, page, size, totalElements }
+- listed=false 종목은 기본 제외
+```
+
+`StockRepository` 포트는 그대로 두고 구현만 설정 → DB로 바꾼다. 설정의 `market.stocks`는 지운다.
+
+## 57.2 계층형 구독 – Subscription Manager (§21 대체)
+
+종목마다 수요를 모아 시세 계층을 정한다.
+
+```text
+수요 신호              출처
+FOCUS 시청자          상세 화면을 연 세션       market WebSocket SUBSCRIBE (mode=FOCUS)
+LIST 시청자           목록·관심종목에 보이는 행  market WebSocket SUBSCRIBE (mode=LIST)
+시장가 대기 주문      체결을 기다리는 시장가    trading 이벤트 order.accepted (orderType=MARKET)
+미체결 지정가 주문    ACCEPTED 지정가           trading 이벤트 order.accepted / 종결 이벤트
+고정 종목             설정                      market.pinned-symbols
+```
+
+계층:
+
+| 계층 | 수단 | 대상 | 신선도 |
+|---|---|---|---|
+| 실시간 | KIS WebSocket | 우선순위 상위 종목 (슬롯 한도까지) | 체결 틱마다 |
+| 폴링 | KIS REST, 유량 한도 안에서 순환 | 수요는 있는데 실시간에 못 든 종목 | 폴링 대상 수 ÷ 초당 한도 |
+| 스냅샷 | KIS REST 1회 | 그 외 종목을 누가 조회했을 때 | 조회 시점 |
+
+우선순위 (높은 것부터):
+
+```text
+1. 시장가 대기 주문이 있는 종목   즉시 스냅샷 1회 + 폴링 최우선 (§58.3)
+2. FOCUS 시청자가 있는 종목
+3. 미체결 지정가 주문이 있는 종목
+4. LIST 시청자가 있는 종목
+5. 고정 종목
+```
+
+실시간 슬롯 배정:
+
+```text
+- 슬롯 = kis.websocket.subscription-limit (등록 건수). 정확한 상한은 KIS 공지로 확인하고 설정에 둔다.
+- 체결 TR과 호가 TR을 따로 배정한다. 호가 TR은 FOCUS 종목에만 준다.
+  나머지는 체결 TR만 받는다 → 같은 한도로 더 많은 종목을 실시간으로 둔다.
+- 슬롯을 뺏을 때는 최소 유지 시간(설정, 예: 60초)을 지킨다. 화면 전환마다 등록·해제가 요동치지 않게 한다.
+- 변경은 모아서 일정 주기(설정)로 반영한다. 재연결 시에는 현재 배정을 그대로 복구한다 (§20 subscription restore).
+```
+
+폴링:
+
+```text
+- KIS REST 호출 전체(초기 시세, 폴링, 스냅샷, 호가)가 토큰 버킷 하나를 같이 쓴다.
+  초당 한도는 모의투자(vts) 기준이다 (§62.3) → kis.rest.rate-limit-per-second (KIS 공지 확인)
+  지금의 kis.rest.request-interval (고정 1초 간격)을 대체한다.
+- 폴링 대상은 우선순위 순으로 돌린다. 한 바퀴 걸린 시간을 지표로 남긴다.
+- 여러 종목을 한 번에 받는 KIS API(관심종목 멀티 시세 등)가 있으면 우선 쓴다.
+  TR ID와 한 번에 받을 수 있는 종목 수는 KIS 문서로 확인한다.
+- FOCUS인데 실시간에 못 든 종목은 호가도 폴링한다 (주기를 더 길게).
+```
+
+폴링·스냅샷으로 받은 시세도 실시간과 **같은 경로**를 탄다 (`QuoteIngestService` → Valkey → `market.price.updated` → WebSocket).
+시세에 출처를 싣는다: `source = REALTIME | POLLING | SNAPSHOT`. 화면은 REALTIME이 아니면 "지연"으로 표시할 수 있다.
+
+수요 상태:
+
+```text
+- 다시 만들 수 있는 상태라 Valkey에 둔다 (§18). 인스턴스가 죽어도 유령 수요가 남지 않게 TTL을 건다.
+- 시청자    세션이 SUBSCRIBE · UNSUBSCRIBE · 종료할 때 갱신. 하트비트로 TTL을 연장한다.
+- 주문      주문 ID 집합. order.accepted 에 SADD, 종결 이벤트(execution.completed, order.cancelled,
+            order.rejected, order.expired)에 SREM. 집합이라 중복 이벤트에 안전하다.
+- 토픽 사이에는 순서가 없다. 종결 이벤트가 접수 이벤트보다 먼저 도착할 수 있다.
+  trading-service가 미체결 주문 스냅샷(order.open.snapshot)을 주기적으로 내고,
+  market-service는 이것으로 주문 집합을 통째로 다시 맞춘다.
+```
+
+Mock 모드:
+
+```text
+- 같은 Subscription Manager를 쓴다. Mock 어댑터가 KIS의 한도(실시간 슬롯, REST 초당 한도)를 설정으로 흉내 낸다.
+  → 계층 전환 로직을 KIS 없이 테스트할 수 있다.
+- 실시간 계층 종목은 매 틱(market.mock.tick-interval), 폴링 계층 종목은 폴링 주기로 가격을 만든다.
+- 출발 가격은 마스터의 base_price. Mock 가격도 호가단위에 맞춘다 (§59.1).
+- Seed 또는 고정 시퀀스로 재현할 수 있어야 한다 (§31).
+```
+
+## 57.3 프론트엔드
+
+```text
+- 종목 목록은 검색 + 페이지다. 전체 목록을 한 번에 받지 않는다.
+- WebSocket 구독
+    FOCUS  선택한 종목 1개 (현재가 · 호가 · 차트)
+    LIST   지금 화면에 보이는 목록 행 + 관심종목
+  화면에서 사라진 종목은 UNSUBSCRIBE 한다.
+- 관심종목·목록의 첫 가격은 배치 조회로 채운다 (GET /api/market/prices?symbols=..., 최대 50).
+- 세션당 구독 종목 수에 상한이 있다 (market.websocket.max-symbols-per-session). 넘으면 서버가 ERROR를 보낸다.
+- 시세 source가 REALTIME이 아니면 지연 표시를 둔다. 표시 방식은 Figma를 따른다 (§30).
+```
+
+---
+
+# 58. Kafka 체결 엔진
+
+## 58.1 원칙
+
+```text
+- 주문 "접수"와 "체결"을 나눈다. 접수는 API가 동기로, 체결은 엔진이 비동기로 한다.
+- MySQL이 원본이다. Kafka 메시지는 엔진을 깨우는 신호다.
+  메시지가 사라지거나 두 번 와도 주문 상태 머신과 계좌 락이 정합성을 지킨다.
+- 엔진은 상태를 메모리에 들고 있지 않는다 (인메모리 호가창 없음).
+  재시작이나 리밸런스 때 복구할 것이 없다.
+- 엔진은 trading-service 안의 모듈(engine/)이다 (§6.3). 별도 서비스로 쪼개지 않는다.
+```
+
+## 58.2 흐름
+
+```text
+[접수]  POST /api/trading/orders                    trading API, 트랜잭션 하나
+          계좌 락 → 멱등 확인 → 검증(§59) → 예약 → orders INSERT (ACCEPTED)
+          → outbox: order.created, order.accepted
+          ← 202 Accepted { status: "ACCEPTED" }
+        즉시 판단할 수 있는 거절(잔고·수량 부족, 검증 실패, 장외, 거래정지)은
+        지금처럼 REJECTED로 저장하고 4xx + 공통 에러로 답한다.
+
+[전달]  Outbox Publisher → Kafka order.accepted     key = symbol
+
+[체결]  체결 엔진                                    consumer group: trading-engine
+          입력  order.accepted, market.price.updated  둘 다 key = symbol
+          order.accepted 수신       그 주문 하나를 최신 시세(Valkey)로 판정한다
+          market.price.updated 수신 그 종목의 체결 가능한 ACCEPTED 주문을 모두 판정한다
+                                    (시세를 기다리는 시장가 + 가격 조건을 넘은 지정가)
+
+        판정 → 체결은 주문 한 건당 트랜잭션 하나:
+          계좌 락 → 주문 다시 읽기 (아직 ACCEPTED인가) → 체결가 결정 → 예약 해제
+          → executions · 계좌 · 포지션 · 원장 → 주문 FILLED → outbox 이벤트
+
+[확인]  클라이언트는 지금처럼 주문·체결 조회로 결과를 확인한다 (useFillWatcher).
+```
+
+지금의 `PendingOrderExecutionService.execute`가 "주문 한 건 체결" 단위다. 엔진은 이것을 재사용하고 시장가로 넓힌다.
+`PlaceOrderService`에서는 체결 코드를 걷어낸다. 체결 경로는 엔진 하나만 남는다.
+
+## 58.3 시장가 주문
+
+```text
+체결가     체결을 판정한 시세의 가격 (§11). 그 시세는 market.price.max-age 안이어야 한다.
+
+시세 대기  접수 시점에 신선한 시세가 없을 수 있다 (스냅샷 계층 종목).
+           → market-service가 order.accepted(시장가)를 보고 그 종목을 즉시 스냅샷 + 최우선 폴링한다 (§57.2)
+           → 새 시세가 market.price.updated로 오면 엔진이 체결한다
+           → trading.market-order.max-wait (예: 5초) 안에 신선한 시세가 안 오면
+             REJECTED(MARKET_PRICE_UNAVAILABLE)로 바꾸고 예약을 푼다.
+             주기 작업이 오래된 ACCEPTED 시장가 주문을 찾아 처리한다.
+
+매수 예약금 기준가격 × 수량 × (1 + trading.market-order.reserve-buffer-rate)
+             기준가격 = 접수 시점 최신 시세, 없으면 상한가 (§59.2)
+           체결대금이 (이 주문의 예약금 + 주문 가능 금액)을 넘으면 REJECTED(INSUFFICIENT_BALANCE).
+           체결 후 남은 예약금은 돌려준다.
+           → 체결이 늦어져 가격이 올라도 예수금은 음수가 되지 않는다 (§2).
+```
+
+## 58.4 토픽 · 파티션 (§16 추가분)
+
+새 토픽:
+
+```text
+order.rejected        엔진이 거절했을 때 (시장가 시세 대기 초과, 체결 시점 잔고 부족)
+order.expired         장 마감으로 만료됐을 때 (§59.3)
+order.open.snapshot   미체결 주문이 있는 종목과 주문 ID. 주기 발행 (§57.2)
+order.accepted.dlq    엔진이 재시도한 뒤에도 처리하지 못한 접수 이벤트
+```
+
+메시지 키:
+
+```text
+order.*                  key = symbol            ← 바뀜 (지금은 orderId)
+execution.completed      key = symbol            ← 바뀜 (지금은 executionId)
+market.price.updated     key = symbol            유지
+account.* · ledger.*     key = accountId         유지
+position.changed         key = accountId:symbol  유지
+```
+
+한 주문의 이벤트는 모두 같은 종목이다. 키를 종목으로 바꿔도 주문별 순서는 그대로 지켜진다.
+
+```text
+- 토픽은 브로커 자동 생성에 맡기지 않는다. 코드(TopicBuilder)로 만들고 파티션 수는 설정값으로 둔다.
+- order.accepted 와 market.price.updated 는 파티션 수를 같게 둔다.
+  엔진은 두 토픽을 리스너 하나로 구독하고 RangeAssignor를 명시한다.
+  → 같은 종목의 주문과 시세를 같은 컨슈머 스레드가 처리한다.
+  정합성은 DB 락이 지킨다. 이건 같은 주문을 두 스레드가 동시에 잡는 낭비를 줄이는 최적화다.
+- 파티션 수를 바꾸면 키 → 파티션 대응이 바뀐다. 바꿀 때는 엔진을 멈추고 바꾼다.
+```
+
+## 58.5 실패 · 중복 · 복구 (§17 추가분)
+
+```text
+market.price.updated  처리에 실패하면 건너뛴다. 다음 틱이 온다 (지금과 같다).
+order.accepted        백오프 재시도 후 order.accepted.dlq. 처리한 뒤에만 오프셋을 넘긴다.
+안전망                주기 작업이 DB에서 오래된 ACCEPTED 주문을 다시 판정한다.
+                      Kafka 메시지가 사라져도 주문은 결국 처리된다.
+중복                  같은 이벤트가 두 번 와도, 엔진이 여러 개여도
+                      "계좌 락 → 주문이 아직 ACCEPTED인가" 확인이 두 번째를 막는다 (ADR-0011).
+취소와 체결의 경합     취소 API도 계좌 락부터 잡는다. 먼저 잡은 쪽이 이기고 나중 쪽은 상태를 보고 물러난다.
+```
+
+## 58.6 API 변경 (§24 추가분)
+
+```text
+POST /api/trading/orders
+  신규 접수                    202 Accepted, status = ACCEPTED (시장가 포함)
+  같은 Idempotency-Key 재요청  202, 그 주문의 현재 상태 (이미 FILLED일 수 있다)
+  즉시 거절                    지금과 같다. 4xx + 공통 에러, REJECTED 주문은 기록에 남는다
+
+프론트 (OrderForm)
+  지금은 응답이 FILLED면 체결, 아니면 "지정한 가격 조건을 기다리고 있어요"로 안내한다.
+  시장가 ACCEPTED는 "체결 중"으로 따로 안내한다. 체결 알림은 지금처럼 useFillWatcher가 낸다.
+```
+
+---
+
+# 59. 거래 규칙 – 호가단위 · 가격제한폭 · 장 운영시간
+
+## 59.1 호가단위
+
+KRX 2023년 개편 기준 (KOSPI · KOSDAQ 주권 공통). 지금 `KrxTickSize`에 있는 표다.
+
+```text
+           가격 <   2,000     1원
+  2,000 ≤ 가격 <   5,000     5원
+  5,000 ≤ 가격 <  20,000    10원
+ 20,000 ≤ 가격 <  50,000    50원
+ 50,000 ≤ 가격 < 200,000   100원
+200,000 ≤ 가격 < 500,000   500원
+500,000 ≤ 가격           1,000원
+```
+
+```text
+- 지정가는 호가단위의 배수여야 한다. 아니면 거절 (INVALID_TICK_SIZE).
+- KrxTickSize를 common으로 옮긴다. market(Mock 가격)과 trading(주문 검증)이 같은 코드를 쓴다.
+- 제도는 바뀔 수 있다. 표는 코드 한 곳에 두고 경계값 테스트(1,999 / 2,000 / 4,999 / 5,000 …)로 고정한다.
+```
+
+## 59.2 가격제한폭
+
+```text
+상한가   기준가 × 1.3 이하인 가장 큰 유효 호가
+하한가   기준가 × 0.7 이상인 가장 작은 유효 호가
+```
+
+```text
+- 지정가는 [하한가, 상한가] 안이어야 한다. 아니면 거절 (PRICE_LIMIT_EXCEEDED).
+- 호가단위로 맞추는 방식(절사·절상, 어느 가격대의 호가단위를 쓰는지)은 KRX 업무규정 원문으로
+  확인한 뒤 경계값 테스트로 고정한다. 확인 전에는 위의 보수적인 정의(±30%를 넘지 않는다)를 쓴다.
+- 기준가는 종목 마스터의 base_price다 (§57.1).
+- trading은 market을 동기 호출하지 않는다 (§6.2). market-service가 Valkey market:meta:{symbol} 에
+  종목 메타(기준가 · 거래정지 · 상장 여부)를 두고 trading이 읽는다. ADR-0008과 같은 방식이다.
+- 메타가 없으면(동기화 전) 가격제한 검증은 건너뛰고 경고를 남긴다. 주문은 막지 않는다.
+```
+
+## 59.3 장 운영시간 · 거래정지
+
+```text
+trading.session.enforce   kis 모드 기본 true, mock 모드 기본 false
+                          (Mock은 아무 때나 거래 흐름을 연습할 수 있어야 한다, §0-4)
+정규장                    09:00 ~ 15:30 KST (설정값)
+휴장일                    설정 목록 또는 KIS 국내휴장일조회
+```
+
+`enforce=true`일 때:
+
+```text
+- 정규장 밖 주문은 거절한다 (MARKET_CLOSED).
+- 장 마감 시각에 ACCEPTED 주문을 만료(EXPIRED)하고 예약을 푼다. 당일 주문만 지원한다.
+```
+
+항상:
+
+```text
+- 거래정지(trading_halted) · 상장폐지(listed=false) 종목은 주문을 거절한다 (SYMBOL_NOT_TRADABLE).
+- 마스터에 없는 종목코드는 SYMBOL_NOT_FOUND.
+```
+
+> **Phase 9 →** 동시호가 · 시간외가 들어오면 "정규장 밖 거절"은 "거래 가능한 세션 밖 거절"로 넓어진다 (§63).
+
+---
+
+# 60. Phase 8 데이터 · 계약 변경 요약
+
+## 60.1 DB
+
+```text
+market    stocks 신규 (§57.1)
+trading   orders 인덱스 (symbol, status, order_type)   엔진이 틱마다 조회한다
+          orders.status 에 EXPIRED 추가
+          orders.reject_reason 에 엔진 거절 사유(MARKET_PRICE_UNAVAILABLE, INSUFFICIENT_BALANCE)가 들어간다
+```
+
+스키마는 Flyway 마이그레이션으로만 바꾼다 (ADR-0004).
+
+## 60.2 Valkey 키 (§18 추가분)
+
+```text
+market:meta:{symbol}             종목 메타 (기준가, 거래정지, 상장 여부)
+market:demand:viewers:{symbol}   시청자 (FOCUS / LIST 구분, TTL)
+market:demand:orders:{symbol}    미체결 주문 ID 집합
+market:subscription:state        현재 실시간 · 폴링 배정 (관측용)
+```
+
+## 60.3 에러 코드 (§39 추가분)
+
+```text
+INVALID_TICK_SIZE      400   지정가가 호가단위에 맞지 않는다
+PRICE_LIMIT_EXCEEDED   400   지정가가 상한가 · 하한가 밖이다
+MARKET_CLOSED          400   정규장 밖이다 (session.enforce=true)
+SYMBOL_NOT_TRADABLE    400   거래정지 · 상장폐지 종목이다
+```
+
+원칙: 클라이언트가 고칠 수 있는 문제는 4xx, 잠시 뒤 해소되는 상태는 503.
+
+## 60.4 REST · WebSocket
+
+```text
+GET  /api/market/stocks            페이지 객체로 바뀐다 (§57.1)                      프론트 수정 필요
+GET  /api/market/stocks/{symbol}   standardCode, basePrice, upperLimit, lowerLimit,
+                                   tickSize, tradable 추가
+GET  /api/market/prices?symbols=   신규. 최대 50종목 배치 조회 (Valkey 우선, 없으면 스냅샷 요청)
+GET  .../price                     source (REALTIME | POLLING | SNAPSHOT) 추가
+POST /api/trading/orders           202 Accepted (§58.6)                               프론트 수정 필요
+WS   SUBSCRIBE                     mode: FOCUS | LIST 추가 (생략하면 LIST)
+```
+
+API 명세(`docs/api/openapi.yaml`, `api-spec.md/.xlsx/.pdf`)는 생성물이다.
+계약을 바꾸면 `./infra/scripts/generate-openapi.sh`로 다시 만들고,
+스크립트의 §24 엔드포인트 목록(EXPECTED)에 새 엔드포인트를 더한다.
+컨트롤러에는 `@Operation`, `@ApiErrorCodes`, DTO에는 `@Schema` 설명을 단다. 비어 있으면 스크립트가 멈춘다.
+
+---
+
+# 61. Phase 8 구현 순서
+
+한 번에 다 하지 않는다 (§51). 단계마다 완료조건을 확인하고 다음으로 간다.
+
+## 61.1 단계
+
+### Phase 8-1 – 종목 마스터
+
+- `stocks` 테이블 · 마스터 파일 파서 · 동기화 작업 · 스냅샷 CSV와 생성 스크립트
+- `StockRepository`를 DB 구현으로 교체하고 설정 `market.stocks`를 지운다
+- 검색 API 페이지화, 종목 상세 필드 추가, 프론트 종목 검색 · 목록 수정
+- §62 반영: `KIS_ENVIRONMENT=real` 기동 차단, `KIS_ACCOUNT_NO` 제거, "Phase 8에서 Cognito" 표기 9곳 정정 (§48), 화면 모의투자 표시 (§62.5)
+
+완료조건:
+
+```text
+전 종목을 검색할 수 있고, 설정 파일의 5종목이 사라진다. 네트워크 없이 Mock 모드가 뜬다.
+```
+
+### Phase 8-2 – 계층형 구독
+
+- Subscription Manager · Valkey 수요 상태 · WebSocket `mode`
+- KIS 어댑터: 고정 구독 → 동적 등록·해제, REST 토큰 버킷 · 폴링 · 스냅샷
+- Mock 어댑터 계층 흉내, 배치 시세 API, 프론트는 보이는 종목만 구독
+
+완료조건:
+
+```text
+아무 종목이나 상세를 열면 시세가 뜨고 갱신된다. 실시간 슬롯을 넘겨도 폴링으로 갱신된다.
+```
+
+### Phase 8-3 – Kafka 체결 엔진
+
+- 토픽 명시 생성 · 메시지 키 변경 · 엔진 리스너(두 토픽) · 시장가 비동기화(202)
+- 시장가 시세 대기 초과 처리 · 안전망 재판정 · DLQ · `order.open.snapshot`
+- `PendingOrderExecutionService`를 엔진의 체결 단위로 재사용, `PlaceOrderService`에서 체결 코드 제거
+- 프론트 시장가 접수 안내 문구
+
+완료조건:
+
+```text
+§56.5의 체결 기준을 만족한다. Kafka를 멈춘 채 주문하고 다시 켜면 쌓인 주문이 체결된다.
+```
+
+### Phase 8-4 – 거래 규칙
+
+- `KrxTickSize` common 이동, 지정가 호가단위 · 가격제한폭 검증, 종목 메타 Valkey
+- 장 운영시간 · 장 마감 만료 · 거래정지 차단, 신규 에러 코드
+
+완료조건:
+
+```text
+§59의 규칙마다 정해진 에러 코드로 거절된다.
+```
+
+## 61.2 테스트 (§35 · §36 추가분)
+
+단위:
+
+```text
+- 마스터 파일 파서 (실제 파일에서 자른 고정 픽스처, cp949)
+- 구독 우선순위 · 슬롯 배정 · 최소 유지 시간
+- 토큰 버킷 (Clock 주입. 실제 시간에 의존하지 않는다)
+- 호가단위 · 상하한가 경계값
+- 시장가 예약금 · 체결 시점 잔고 재확인
+```
+
+통합 (Testcontainers):
+
+```text
+- 시장가 접수 202 → 시세 이벤트 → FILLED
+- 시장가 시세 대기 초과 → REJECTED, 예약 해제
+- 같은 order.accepted 두 번 · 엔진 두 개 동시 소비 → 체결 한 번
+- 취소와 체결 경합 → 하나만 성공, 잔고 일치
+- Kafka 중단 중 접수 → 복구 후 체결
+- 폴링 계층 시세로 지정가 체결
+```
+
+## 61.3 남길 ADR
+
+```text
+ADR-0014  종목 마스터는 KIS 종목정보 파일로 동기화한다
+ADR-0015  시세는 수요 기반 계층형 구독으로 공급한다 (§21 · ADR-0012의 고정 구독 대체)
+ADR-0016  주문 접수와 체결을 나누고 Kafka 체결 엔진이 체결한다
+ADR-0017  엔진 입력 토픽의 키를 종목코드로 하고 파티션 수를 맞춘다
+ADR-0018  이 서비스는 모의투자 전용이다 (KIS는 시세 전용 · vts. Cognito는 공개 배포 직전. ADR-0006 상태 갱신)
+```
+
+## 61.4 Phase 8 다음
+
+§63 로드맵으로 옮겼다.
+
+---
+
+# 62. 서비스 정의 – 무조건 모의투자
+
+> **이 섹션은 다른 모든 섹션보다 우선한다.** 어떤 Phase에서도 바뀌지 않는다.
+
+## 62.1 정의
+
+```text
+이 서비스는 모의투자 전용이다. 예외는 없다.
+
+- 실제 주문 · 실제 계좌 · 실제 자금 · 실제 청산/결제는 없다. 앞으로도 만들지 않는다.
+- 사용자의 돈은 가상 자금이다 (§9.1). 실제 입금 · 출금 · 환전은 없다.
+- 체결은 모두 서비스 안의 체결 엔진이 시뮬레이션한다 (§58).
+  거래소에도 증권사에도 주문이 나가지 않는다.
+- 실제인 것은 시세뿐이다 (KIS). 시세는 읽기만 한다.
+```
+
+실제 체결이 일어나지 않으므로, 실제 증권사라면 조심스럽게 다룰 기능(신용 · 미수 · 공매도 · 파생)도
+시뮬레이션으로 구현한다 (§63).
+
+## 62.2 실제와 같게 하는 것 · 다른 것
+
+실제와 같게 한다:
+
+```text
+시세 · 호가                                    실제 KIS 데이터
+호가단위 · 가격제한폭 · 장 운영시간 · 세션 규칙   KRX 규정
+수수료 · 세금 계산 구조                          값은 설정 (§44)
+```
+
+시뮬레이션이라 실제와 다르다. 화면과 문서에 숨기지 않는다:
+
+```text
+- 우리 사용자의 주문은 실제 시장에 영향을 주지 않는다. 시장 충격이 없다.
+- 호가 잔량 기반 체결(Phase 9)에서는 같은 잔량을 여러 사용자가 동시에 소비할 수 있다.
+- 사용자끼리 주문을 맞추지 않는다. 모든 체결은 실제 시세를 기준으로 판정한다.
+```
+
+## 62.3 KIS 사용 범위
+
+```text
+쓴다     접근토큰 · 실시간 승인키, 시세 REST, 실시간 WebSocket, 종목정보 파일, 휴장일 조회
+안 쓴다  주문 · 정정 · 취소 · 잔고 · 계좌 API. 호출하는 코드를 만들지 않는다 (지금 코드에도 없다)
+환경     모의투자(vts)만 쓴다. KIS_ENVIRONMENT=real 이면 기동을 막는다
+계좌     KIS_ACCOUNT_NO는 필요 없다. 설정과 .env.example에서 뺀다
+```
+
+```text
+- 모의투자 앱키로도 실제 시장 시세가 나온다 (지금 vts로 받고 있다).
+- 다만 REST 초당 한도가 실전과 다를 수 있다. 폴링 계층(§57.2)의 처리량이 이 한도에 묶이므로
+  한도는 KIS 공지로 확인해 설정(kis.rest.rate-limit-per-second)에 둔다.
+- MARKET_PROVIDER=mock (KIS 없이 동작)은 그대로 유지한다 (§0-4). 오프라인 개발과 테스트용이다.
+```
+
+## 62.4 인증 – Cognito는 공개 배포 직전에
+
+```text
+- 지금은 Mock Login (HMAC 서명 토큰, ADR-0006)을 쓴다.
+- Amazon Cognito는 나중에 붙인다. Phase 11(AWS 배포)의 첫 작업이다.
+- Cognito를 붙이기 전에는 배포하지 않는다. 로컬 개발 환경에서만 돌린다.
+  지금 Mock Login은 이메일만 알면 그 사용자로 들어갈 수 있기 때문이다.
+- Cognito Multi-Region Replication(GCP로 전환해도 로그인이 되게 하는 것)은 DR 단계(Phase 12)에서 정한다.
+- 그 전까지도 토큰 서명 · 만료 검증 · Gateway의 X-User-Id 위조 차단은 그대로 지킨다.
+```
+
+## 62.5 화면 표시
+
+```text
+- 모든 화면에서 모의투자임을 알 수 있게 한다. 문구와 위치는 Figma를 따른다 (§30).
+- 실제 증권사 · 거래소로 오인할 수 있는 이름 · 로고 · 문구를 쓰지 않는다 (§53).
+```
+
+---
+
+# 63. 전체 로드맵
+
+> Phase 8(§56~§61) 다음 단계다. 이 문서가 미뤄 두었던 범위를 모두 넣었다
+> (§3, §6.1, §38, §41, §48, §56.4).
+>
+> 여기서는 범위와 순서만 정한다. **각 Phase를 시작하기 전에 상세 설계 섹션을 이 문서 끝에 새 번호로 덧붙인다**
+> (Phase 8의 §56~§61처럼). 상세 설계 없이 구현을 시작하지 않는다.
+
+## 63.1 순서
+
+| Phase | 내용 | 비고 |
+|---|---|---|
+| 8 | 전 종목 · 계층형 구독 · Kafka 체결 엔진 · 거래 규칙 | §56~§61 |
+| 9 | 체결 현실화 · 세션 확장 · 체결 푸시 · 감사 이벤트 | |
+| 10 | 운영 기반 (Rate Limit · 다중 인스턴스 · 관측성 · 품질 게이트) | |
+| 11 | Cognito · AWS 배포 (Terraform · EKS · 관리형 데이터 · Argo CD) | Cognito 없이 배포하지 않는다 |
+| 12 | GCP DR (GKE · 클라우드 간 복제 · 자동 전환 · RPO/RTO) | |
+| 13 | 상품 확장 (ETF · ETN · ELW · 리츠 · 코넥스) | |
+| 14 | 신용 · 미수 · 공매도 (결제 T+2 시뮬레이션) | |
+| 15 | 파생상품 (KOSPI200 선물 · 옵션) | 범위가 가장 크다 |
+| 16 | 모바일 앱 | |
+
+클라우드(11~12)를 상품 확장(13~15)보다 먼저 둔다. 이 프로젝트의 핵심 메시지(§55)가
+클라우드 네이티브와 멀티클라우드 DR이기 때문이다.
+
+### Phase 9 – 체결 현실화
+
+```text
+호가 기반 체결   시장가는 실제 상대 호가를 1단계부터 잔량만큼 소비한다. 지정가는 지정가 이내 잔량까지만 체결한다.
+                 남은 수량은 다음 호가 갱신 때 이어서 판정한다 → PARTIALLY_FILLED (§9.6). 체결 기록은 건마다 남긴다.
+                 신선한 호가가 없으면 Phase 8처럼 시세 기준 전량 체결로 대신한다.
+                 취소는 남은 수량만 취소하고 남은 예약만 푼다.
+동시호가         08:30~09:00 · 15:20~15:30에 접수한 주문은 실제 시가 · 종가로 한 번에 판정한다.
+                 예상체결가 실시간 제공 여부는 KIS 문서로 확인한다.
+시간외           장전 시간외 종가 · 장후 시간외 종가 · 시간외 단일가.
+                 시간대와 가격 규칙은 KRX 기준으로 확인해 설정에 둔다.
+                 §59.3의 "정규장 밖 거절"은 "거래 가능한 세션 밖 거절"로 넓어진다.
+체결 푸시        사용자별 WebSocket 채널. 브라우저 핸드셰이크에는 헤더를 실을 수 없으므로(ADR-0007)
+                 REST로 수명이 짧은 연결 티켓을 받아 연결할 때 낸다. 원천은 Kafka의 주문 · 체결 이벤트다.
+감사 이벤트      §41의 audit.logged. 아직 구현되지 않았다. LOGIN_SUCCESS부터 POSITION_CHANGED까지.
+```
+
+### Phase 10 – 운영 기반
+
+```text
+Rate Limiting          Gateway RequestRateLimiter + Valkey. §6.1의 "구조만 마련"을 실제로 적용한다.
+market 다중 인스턴스    KIS 연결은 앱키당 하나다 → 리더 한 대만 수집한다.
+                       WebSocket 송신은 각 인스턴스가 market.price.updated를 소비해서 한다.
+                       리더 선출 방식은 ADR로 정한다. 계좌 정합성 락이 아니므로 §13과 무관하다.
+관측성                  OpenTelemetry → Tempo (트레이스), Micrometer → Prometheus → Grafana (지표),
+                       구조화 로그 → Loki. 로컬은 docker compose 프로파일로 띄운다.
+                       traceId(§40)를 트레이스와 잇는다.
+품질 · 배포 준비        SonarQube, 이미지 레지스트리 푸시, GitOps 저장소 갱신 (§38)
+```
+
+### Phase 11 – Cognito · AWS 배포
+
+```text
+Cognito     User Pool로 로그인, Gateway가 Cognito JWT를 검증한다. Mock 토큰을 대체한다. 이 Phase의 첫 작업이다
+Terraform   VPC · EKS · RDS MySQL (Multi-AZ) · ElastiCache (Valkey) · MSK · ECR
+배포        GitLab CI가 ECR에 이미지를 올리고 GitOps 저장소를 갱신한다 → Argo CD가 EKS에 동기화한다
+비밀값      KIS 앱키 · AUTH_TOKEN_SECRET은 클라우드 비밀 저장소에서 주입한다 (§33). Git에 두지 않는다
+전제        Cognito가 먼저다. Cognito 없이 공개 배포하지 않는다 (§62.4)
+```
+
+### Phase 12 – GCP DR
+
+```text
+구성   GKE · Cloud SQL (MySQL) · Memorystore (Valkey) · Kafka (관리형 또는 자체 운영, ADR로 정한다)
+복제   MySQL   AWS 원본 → GCP 복제본 (클라우드 간 복제)
+       Kafka   단방향 미러링 (MirrorMaker 2 등)
+       Valkey  복제하지 않는다. 다시 만들 수 있는 캐시라 전환 뒤 다시 채운다 (§18)
+전환   상태 검사 실패 → DNS 전환 → GCP 복제본 승격 → GCP 쪽이 KIS 수집 리더가 된다
+측정   RPO · RTO를 장애 훈련으로 측정하고 목표값을 둔다 (예: RPO ≤ 1분, RTO ≤ 15분. 측정한 뒤 확정한다)
+인증   Cognito는 AWS 리전 서비스다. GCP로 전환해도 로그인이 되는 방법(Cognito MRR 등)을 상세 설계에서 정한다
+방식   Active-Passive. 쓰기 지점은 언제나 한 곳이다
+```
+
+### Phase 13 – 상품 확장
+
+```text
+ETF · ETN · ELW · 리츠 · 코넥스
+- 종목정보 파일의 해당 레코드와 코넥스 파일을 마스터에 넣는다 (§57.1의 "주권만"을 푼다)
+- 상품마다 호가단위 · 가격제한폭이 다르다. KRX 규정으로 확인하고 상품별로 테스트한다
+- §59의 규칙 코드를 상품 유형별로 고를 수 있게 넓힌다
+```
+
+### Phase 14 – 신용 · 미수 · 공매도
+
+```text
+결제 T+2   지금은 체결하는 순간 예수금이 움직인다. 예수금 · D+1 · D+2 예수금과 결제일 정산을 시뮬레이션한다.
+           미수와 신용의 전제다.
+미수       종목별 증거금률로 매수한다. D+2에 미납이면 반대매매한다.
+신용       보증금률 · 신용이자(일할) · 만기 · 담보비율 미달 시 반대매매
+공매도     대차 가능 종목 · 수량 풀(시뮬레이션), 차입 수수료, 호가 제한 규칙, 상환
+공통       비율 · 이율 · 한도는 모두 설정값이다. 반대매매도 체결 엔진(§58)을 거친다.
+           "예수금은 음수가 될 수 없다"(§2)는 "미수 · 신용 한도 안에서만"으로 다시 정의한다. 상세 설계에서 확정한다.
+```
+
+### Phase 15 – 파생상품
+
+```text
+KOSPI200 선물 · 옵션. 주식과 다른 도메인이다.
+- 시세: KIS 국내선물옵션 실시간 · REST. 모의투자(vts) 환경이 어디까지 주는지 먼저 확인한다
+- 증거금(개시 · 유지), 일일정산, 만기 · 최종결제, 선물옵션 전용 가상 계좌
+- trading-service 안의 별도 모듈로 두되, 주식 계좌 · 잔고와 섞지 않는다
+- 범위가 가장 크다. 상세 설계에서 1차 범위(예: 선물만)를 다시 자른다
+```
+
+### Phase 16 – 모바일 앱
+
+```text
+- 같은 Gateway API · WebSocket 계약을 쓴다. 앱 전용 서버 API를 따로 만들지 않는다.
+- 기술 선택(React Native 등)과 배포 방식은 ADR로 정한다. 디자인은 Figma를 따른다 (§30).
+- 체결 알림은 Phase 9의 체결 푸시를 그대로 쓴다. 앱 푸시 알림은 상세 설계에서 정한다.
+```
+
+## 63.2 하지 않는 것
+
+| 항목 | 이유 |
+|---|---|
+| 실제 주문 · 계좌 · 자금 · KRX 직접 연결 · 청산/결제 | 모의투자 전용이다 (§62.1) |
+| 사용자 간 주문 매칭 | 실제 시세와 다른 가격이 생긴다. 체결은 실제 시세 기준이다 (§62.2) |
+| Active-Active 멀티클라우드 | 거래 DB의 쓰기 지점은 하나여야 한다 (§0-6). DR은 Active-Passive다 (Phase 12) |
+| RPO 0 보장 | 클라우드 간 동기 복제가 필요하다. 대신 측정하고 목표를 둔다 (Phase 12) |
+| KIS 앱키 여러 개로 구독 상한 우회 | KIS 이용 정책을 확인하지 않은 우회다. 계층형 구독으로 해결한다 (§57.2) |
+| Event Sourcing · Full CQRS · Saga · 2PC · 분산 트랜잭션 · Service Mesh | 기능이 아니라 설계 선택이다. §46을 유지한다 |
