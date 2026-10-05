@@ -3,6 +3,34 @@
 모든 요청은 Gateway(`http://localhost:8080`)를 통한다.
 계약의 원본은 CLAUDE.md §24, §25이며, 이 문서는 **현재 구현된 것**만 적는다.
 
+## OpenAPI 명세
+
+기계가 읽는 명세는 [`openapi.yaml`](openapi.yaml)에 있다. 컨트롤러와 DTO에서 생성한 것이라
+코드와 어긋나지 않는다. Postman·Insomnia·클라이언트 코드 생성기에 그대로 넣을 수 있다.
+
+서비스를 띄운 상태에서 **Swagger UI**로 직접 호출해 볼 수도 있다.
+
+| 서비스 | Swagger UI | 명세 |
+|---|---|---|
+| market-service | http://localhost:8081/swagger-ui.html | http://localhost:8081/v3/api-docs |
+| trading-service | http://localhost:8082/swagger-ui.html | http://localhost:8082/v3/api-docs |
+| user-service | http://localhost:8083/swagger-ui.html | http://localhost:8083/v3/api-docs |
+
+우상단 **Authorize** 에 `mock-login` 이 준 `accessToken` 을 넣으면 인증이 필요한 API도
+브라우저에서 바로 호출된다.
+
+`openapi.yaml` 을 다시 만들려면:
+
+```bash
+./infra/scripts/generate-openapi.sh
+```
+
+**이 파일은 손으로 고치지 않는다.** 컨트롤러나 DTO를 고치고 스크립트를 다시 돌린다.
+§24의 엔드포인트가 하나라도 빠지면 스크립트가 멈춘다.
+
+아래 문서는 OpenAPI가 표현하지 못하는 것 — 왜 그렇게 동작하는지, 체결 규칙, WebSocket,
+Kafka 계약 — 을 설명한다. 두 문서는 같은 API를 다른 각도에서 본다.
+
 ## 공통
 
 ### 인증

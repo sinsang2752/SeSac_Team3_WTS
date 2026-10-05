@@ -1,0 +1,1900 @@
+# 이 파일은 생성물이다. 직접 고치지 말고 infra/scripts/generate-openapi.sh 를 다시 돌린다.
+openapi: 3.1.0
+info:
+  title: WTS – 모의투자 Web Trading System API
+  version: 0.0.1-SNAPSHOT
+  description: '모의투자 Web Trading System API.
+
+
+    클라이언트는 각 서비스를 직접 호출하지 않고 Gateway(http://localhost:8080)로만 접근한다.
+
+    토큰은 `POST /api/users/mock-login` 으로 발급받는다.
+
+
+    주문 API는 `Idempotency-Key` 헤더가 필수다. 같은 키로 같은 내용을
+
+    재요청하면 주문이 새로 생기지 않고 기존 결과가 돌아온다.
+
+
+    모든 응답에 `X-Trace-Id` 헤더가 붙는다. 에러 본문의 `traceId`와 같은 값이다.
+
+    '
+servers:
+- url: http://localhost:8080
+  description: Gateway
+security:
+- bearerAuth: []
+paths:
+  /api/market/stocks:
+    get:
+      tags:
+      - stock-controller
+      operationId: list
+      parameters:
+      - name: keyword
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StockResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/market/stocks/{symbol}:
+    get:
+      tags:
+      - stock-controller
+      operationId: detail
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StockResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/market/stocks/{symbol}/candles:
+    get:
+      tags:
+      - candle-controller
+      operationId: candles
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: interval
+        in: query
+        required: false
+        schema:
+          type: string
+          default: 1m
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 120
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CandleResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/market/stocks/{symbol}/orderbook:
+    get:
+      tags:
+      - quote-controller
+      operationId: orderBook
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OrderBookResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/market/stocks/{symbol}/price:
+    get:
+      tags:
+      - quote-controller
+      operationId: price
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PriceResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/trading/account:
+    get:
+      tags:
+      - account-controller
+      operationId: account
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/trading/executions:
+    get:
+      tags:
+      - execution-controller
+      operationId: executions
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExecutionResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/trading/orders:
+    get:
+      tags:
+      - order-controller
+      operationId: list
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - RECEIVED
+          - VALIDATED
+          - ACCEPTED
+          - FILLED
+          - CANCELLED
+          - REJECTED
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+      - order-controller
+      operationId: place
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOrderRequest'
+        required: true
+      responses:
+        '201':
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/trading/orders/{orderId}:
+    get:
+      tags:
+      - order-controller
+      operationId: one
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - order-controller
+      operationId: cancel
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/trading/portfolio:
+    get:
+      tags:
+      - portfolio-controller
+      operationId: portfolio
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PortfolioResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/trading/positions:
+    get:
+      tags:
+      - position-controller
+      operationId: positions
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PositionResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/users/me:
+    get:
+      tags:
+      - user-controller
+      operationId: me
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/users/me/watchlist:
+    get:
+      tags:
+      - watchlist-controller
+      operationId: list
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WatchlistItemResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/users/me/watchlist/{symbol}:
+    post:
+      tags:
+      - watchlist-controller
+      operationId: add
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/WatchlistItemResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - watchlist-controller
+      operationId: remove
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/users/mock-login:
+    post:
+      tags:
+      - user-controller
+      operationId: mockLogin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MockLoginRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MockLoginResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
+
+            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
+
+            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Unauthorized
+
+
+            - `UNAUTHORIZED` — 인증이 필요합니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Not Found
+
+
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
+
+            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
+
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
+
+            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Conflict
+
+
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
+
+            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal Server Error
+
+
+            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 'Service Unavailable
+
+
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
+
+            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    AccountResponse:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: int64
+        userId:
+          type: string
+        cashBalance:
+          type: number
+        reservedCash:
+          type: number
+        availableCash:
+          type: number
+        updatedAt:
+          type: string
+          format: date-time
+    CandleResponse:
+      type: object
+      properties:
+        openTime:
+          type: string
+          format: date-time
+        open:
+          type: number
+        high:
+          type: number
+        low:
+          type: number
+        close:
+          type: number
+        volume:
+          type: integer
+          format: int64
+    ErrorResponse:
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        traceId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    ExecutionResponse:
+      type: object
+      properties:
+        executionId:
+          type: integer
+          format: int64
+        orderId:
+          type: integer
+          format: int64
+        symbol:
+          type: string
+        side:
+          type: string
+          enum:
+          - BUY
+          - SELL
+        price:
+          type: number
+        quantity:
+          type: integer
+          format: int64
+        amount:
+          type: number
+        fee:
+          type: number
+        realizedProfit:
+          type: number
+        executedAt:
+          type: string
+          format: date-time
+    MockLoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          maxLength: 255
+          minLength: 0
+        nickname:
+          type: string
+          maxLength: 50
+          minLength: 0
+      required:
+      - email
+    MockLoginResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        email:
+          type: string
+        nickname:
+          type: string
+        accessToken:
+          type: string
+        expiresInSeconds:
+          type: integer
+          format: int64
+    OrderBookLevel:
+      type: object
+      properties:
+        price:
+          type: number
+        quantity:
+          type: integer
+          format: int64
+    OrderBookResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+        asks:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderBookLevel'
+        bids:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderBookLevel'
+        timestamp:
+          type: string
+          format: date-time
+    OrderResponse:
+      type: object
+      properties:
+        orderId:
+          type: integer
+          format: int64
+        symbol:
+          type: string
+        side:
+          type: string
+          enum:
+          - BUY
+          - SELL
+        orderType:
+          type: string
+          enum:
+          - MARKET
+          - LIMIT
+        quantity:
+          type: integer
+          format: int64
+        limitPrice:
+          type: number
+        filledQuantity:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum:
+          - RECEIVED
+          - VALIDATED
+          - ACCEPTED
+          - FILLED
+          - CANCELLED
+          - REJECTED
+        rejectReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PlaceOrderRequest:
+      type: object
+      properties:
+        symbol:
+          type: string
+          pattern: \d{6}
+        side:
+          type: string
+          enum:
+          - BUY
+          - SELL
+        orderType:
+          type: string
+          enum:
+          - MARKET
+          - LIMIT
+        quantity:
+          type: integer
+          format: int64
+          maximum: 1000000
+          minimum: 1
+        limitPrice:
+          type: number
+          minimum: 0
+      required:
+      - orderType
+      - side
+      - symbol
+    PortfolioItem:
+      type: object
+      properties:
+        symbol:
+          type: string
+        quantity:
+          type: integer
+          format: int64
+        reservedQuantity:
+          type: integer
+          format: int64
+        availableQuantity:
+          type: integer
+          format: int64
+        averagePrice:
+          type: number
+        currentPrice:
+          type: number
+        purchaseAmount:
+          type: number
+        evaluationAmount:
+          type: number
+        valuationProfit:
+          type: number
+        valuationProfitRate:
+          type: number
+    PortfolioResponse:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: int64
+        cashBalance:
+          type: number
+        reservedCash:
+          type: number
+        availableCash:
+          type: number
+        totalPurchaseAmount:
+          type: number
+        totalEvaluationAmount:
+          type: number
+        valuationProfit:
+          type: number
+        valuationProfitRate:
+          type: number
+        realizedProfit:
+          type: number
+        totalAssets:
+          type: number
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioItem'
+        evaluatedAt:
+          type: string
+          format: date-time
+    PositionResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+        quantity:
+          type: integer
+          format: int64
+        reservedQuantity:
+          type: integer
+          format: int64
+        availableQuantity:
+          type: integer
+          format: int64
+        averagePrice:
+          type: number
+        updatedAt:
+          type: string
+          format: date-time
+    PriceResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+        price:
+          type: number
+        previousClose:
+          type: number
+        change:
+          type: number
+        changeRate:
+          type: number
+        volume:
+          type: integer
+          format: int64
+        timestamp:
+          type: string
+          format: date-time
+    StockResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        market:
+          type: string
+    UserResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        email:
+          type: string
+        nickname:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    WatchlistItemResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: '`POST /api/users/mock-login` 이 발급한 accessToken'
+      scheme: bearer

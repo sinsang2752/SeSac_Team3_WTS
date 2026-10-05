@@ -15,6 +15,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * @param realizedProfit        실현손익 누적. 이미 팔아서 확정된 이익이다
  * @param totalAssets           총 자산 = 예수금 + 평가금액
  */
+import io.swagger.v3.oas.annotations.media.Schema;
+
 public record PortfolioResponse(
         Long accountId,
         BigDecimal cashBalance,
@@ -34,6 +36,7 @@ public record PortfolioResponse(
      *                     (평가손익 0). 모르는 값을 0원으로 만들어 총자산을 왜곡하지 않기 위해서다.
      */
     @JsonInclude(JsonInclude.Include.ALWAYS)
+    @Schema(name = "PortfolioItem")
     public record Item(
             String symbol,
             long quantity,

@@ -3,6 +3,7 @@ package com.team.wts.trading.order.adapter.in.web;
 import java.net.URI;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.team.wts.common.error.DomainException;
@@ -52,6 +54,9 @@ public class OrderController {
      * 200번대로 알리면 클라이언트가 성공과 구분하기 어렵다.
      */
     @PostMapping
+    // 실제 응답 코드는 아래 ResponseEntity.created()가 정한다. 이 애너테이션은 OpenAPI
+    // 명세용이다. 없으면 springdoc이 ResponseEntity를 보고 200으로 적는다.
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<OrderResponse> place(
             @CurrentUserId String userId,
             @RequestHeader(WtsHeaders.IDEMPOTENCY_KEY) String idempotencyKey,

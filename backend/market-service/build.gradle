@@ -3,6 +3,8 @@ dependencies {
     implementation project(':common')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    // OpenAPI 3 명세 + Swagger UI. 컨트롤러에서 생성한다.
+    implementation libs.springdoc.openapi
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     // 최신 시세/호가 캐시 – 재생성 가능한 데이터만 저장한다 (§18)
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'

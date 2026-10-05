@@ -98,6 +98,7 @@ npm run dev
 | 거래내역 | http://localhost:5173/orders | 미체결 · 주문내역 · 체결내역 |
 | 내 자산 | http://localhost:5173/portfolio | 예약금 · 평가손익 · 실현손익 |
 | API Gateway | http://localhost:8080 | 백엔드 단일 진입점 |
+| Swagger UI | http://localhost:8082/swagger-ui.html | 거래 API를 브라우저에서 호출 ([전체 목록](docs/api/README.md#openapi-명세)) |
 | Kafka UI (선택) | http://localhost:8090 | `docker compose --profile tools up -d` 후 |
 
 로그인은 **아무 이메일이나** 넣으면 된다. 처음 보는 이메일이면 계정과 가상 계좌 1억원이 함께 만들어진다.
@@ -253,6 +254,9 @@ cd backend && ./gradlew :trading-service:test
 # 단일 서비스 실행
 cd backend && ./gradlew :market-service:bootRun
 
+# OpenAPI 명세 재생성 (서비스가 떠 있어야 한다)
+./infra/scripts/generate-openapi.sh
+
 # 프론트엔드
 cd frontend && npm run dev      # 개발 서버
 cd frontend && npm run build    # 타입체크 + 프로덕션 빌드
@@ -265,7 +269,8 @@ cd frontend && npm run lint
 
 | 문서 | 내용 |
 |---|---|
-| [docs/api/](docs/api/README.md) | REST API 명세 |
+| [docs/api/](docs/api/README.md) | REST API 명세 (동작 설명 · WebSocket · Kafka 계약) |
+| [docs/api/openapi.yaml](docs/api/openapi.yaml) | OpenAPI 3.1 명세. 코드에서 생성한다 |
 | [docs/architecture/phase0-bootstrap.md](docs/architecture/phase0-bootstrap.md) | 인프라 · 서비스 구성 |
 | [docs/architecture/phase1-user-account.md](docs/architecture/phase1-user-account.md) | 인증 흐름 · 도메인 구조 · 스키마 |
 | [docs/architecture/phase2-mock-market.md](docs/architecture/phase2-mock-market.md) | 시세 파이프라인 · 1분봉 · WebSocket · 프론트엔드 상태 |

@@ -10,6 +10,8 @@ dependencies {
     // WebFlux 기반인 gateway-service는 이 클래스들을 로드하지 않는다
     // (WtsCommonAutoConfiguration의 @ConditionalOnClass가 걸러낸다).
     compileOnly 'org.springframework.boot:spring-boot-starter-web'
+    // OpenAPI 빈은 springdoc 이 있는 서비스에서만 등록된다 (gateway 제외).
+    compileOnly libs.springdoc.openapi
     implementation 'org.springframework.boot:spring-boot-autoconfigure'
     implementation 'org.slf4j:slf4j-api'
 
