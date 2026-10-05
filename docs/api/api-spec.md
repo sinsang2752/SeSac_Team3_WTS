@@ -1,6 +1,6 @@
 # WTS 모의투자 API 명세서
 
-> **생성물이다. 직접 고치지 않는다.** 원본은 컨트롤러(`@Operation`)와 DTO(`@Schema`)이고, [`openapi.yaml`](openapi.yaml)을 거쳐 `./infra/scripts/generate-openapi.sh` 가 만든다. 같은 내용의 엑셀은 [`api-spec.xlsx`](api-spec.xlsx).
+> **생성물이다. 직접 고치지 않는다.** 원본은 컨트롤러(`@Operation`)와 DTO(`@Schema`)이고, [`openapi.yaml`](openapi.yaml)을 거쳐 `./infra/scripts/generate-openapi.sh` 가 만든다. 같은 내용의 엑셀·PDF는 [`api-spec.xlsx`](api-spec.xlsx), [`api-spec.pdf`](api-spec.pdf).
 >
 > 실시간 시세 WebSocket(`/ws/market`)과 Kafka 이벤트 계약은 OpenAPI로 표현할 수 없어 [README.md](README.md)에 있다.
 

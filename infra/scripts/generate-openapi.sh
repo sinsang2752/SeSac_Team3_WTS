@@ -7,7 +7,7 @@
 #   ./infra/scripts/generate-openapi.sh
 #
 # 산출물: docs/api/openapi.yaml
-#         docs/api/api-spec.md, docs/api/api-spec.xlsx  (openapi.yaml 에서 렌더링)
+#         docs/api/api-spec.md, .xlsx, .pdf  (openapi.yaml 에서 렌더링)
 #
 # 명세를 손으로 고치지 않는다. 컨트롤러와 DTO를 고치고 이 스크립트를 다시 돌린다.
 set -euo pipefail

@@ -271,7 +271,7 @@ cd frontend && npm run lint
 |---|---|
 | [docs/api/](docs/api/README.md) | REST API 명세 (동작 설명 · WebSocket · Kafka 계약) |
 | [docs/api/openapi.yaml](docs/api/openapi.yaml) | OpenAPI 3.1 명세. 코드에서 생성한다 |
-| [docs/api/api-spec.md](docs/api/api-spec.md) · [api-spec.xlsx](docs/api/api-spec.xlsx) | 같은 명세를 표로 옮긴 것 (md / 엑셀) |
+| [docs/api/api-spec.md](docs/api/api-spec.md) · [xlsx](docs/api/api-spec.xlsx) · [pdf](docs/api/api-spec.pdf) | 같은 명세를 표로 옮긴 것 (md / 엑셀 / PDF) |
 | [docs/architecture/phase0-bootstrap.md](docs/architecture/phase0-bootstrap.md) | 인프라 · 서비스 구성 |
 | [docs/architecture/phase1-user-account.md](docs/architecture/phase1-user-account.md) | 인증 흐름 · 도메인 구조 · 스키마 |
 | [docs/architecture/phase2-mock-market.md](docs/architecture/phase2-mock-market.md) | 시세 파이프라인 · 1분봉 · WebSocket · 프론트엔드 상태 |

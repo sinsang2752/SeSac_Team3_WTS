@@ -14,8 +14,9 @@
 |---|---|
 | [`api-spec.md`](api-spec.md) | API 목록 · 요청/응답 필드 · 에러 코드. GitHub에서 바로 읽는다 |
 | [`api-spec.xlsx`](api-spec.xlsx) | 같은 내용의 엑셀 (개요 · API 목록 · API 상세 · 에러 코드 시트) |
+| [`api-spec.pdf`](api-spec.pdf) | 같은 내용의 PDF (A4, 책갈피 · 목록에서 상세로 가는 링크) |
 
-세 파일 모두 생성물이다. 설명을 고치려면 컨트롤러의 `@Operation`, DTO의 `@Schema`를 고친다.
+네 파일 모두 생성물이다. 설명을 고치려면 컨트롤러의 `@Operation`, DTO의 `@Schema`를 고친다.
 
 서비스를 띄운 상태에서 **Swagger UI**로 직접 호출해 볼 수도 있다.
 
@@ -43,6 +44,9 @@
 - `$ref` 가 끊겼다
 
 `openapi.yaml` 만 있으면 표는 서비스 없이 다시 만들 수 있다.
+PDF는 `reportlab`(`pip install reportlab`)과 한글 TrueType 글꼴이 있을 때만 만든다. 없으면 PDF만 건너뛴다.
+글꼴은 macOS AppleGothic, Linux 나눔고딕(`fonts-nanum`), Windows 맑은 고딕을 찾고,
+`WTS_PDF_FONT` 에 `.ttf` 경로를 주면 그 글꼴을 쓴다.
 
 ```bash
 python3 infra/scripts/render-api-spec.py docs/api/openapi.yaml

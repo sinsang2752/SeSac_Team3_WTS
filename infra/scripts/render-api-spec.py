@@ -7,8 +7,9 @@ openapi.yaml 을 사람이 읽는 표 형식 API 명세서로 바꾼다.
 산출물 (yaml 과 같은 폴더):
     api-spec.md     GitHub에서 바로 읽는다
     api-spec.xlsx   제출·공유용
+    api-spec.pdf    인쇄·배포용. reportlab 과 한글 TrueType 글꼴이 있을 때만 만든다
 
-둘 다 생성물이다. 직접 고치지 않는다. 원본은 컨트롤러(@Operation)와 DTO(@Schema)이고,
+모두 생성물이다. 직접 고치지 않는다. 원본은 컨트롤러(@Operation)와 DTO(@Schema)이고,
 보통은 generate-openapi.sh 가 yaml 을 만든 뒤 이 스크립트를 부른다.
 yaml 만 읽으므로 서비스를 띄우지 않고도 돌릴 수 있다.
 """
@@ -203,7 +204,7 @@ def render_md(spec):
     w("# WTS 모의투자 API 명세서\n")
     w("> **생성물이다. 직접 고치지 않는다.** 원본은 컨트롤러(`@Operation`)와 DTO(`@Schema`)이고, "
       "[`openapi.yaml`](openapi.yaml)을 거쳐 `./infra/scripts/generate-openapi.sh` 가 만든다. "
-      "같은 내용의 엑셀은 [`api-spec.xlsx`](api-spec.xlsx).\n>\n"
+      "같은 내용의 엑셀·PDF는 [`api-spec.xlsx`](api-spec.xlsx), [`api-spec.pdf`](api-spec.pdf).\n>\n"
       "> 실시간 시세 WebSocket(`/ws/market`)과 Kafka 이벤트 계약은 OpenAPI로 표현할 수 없어 "
       "[README.md](README.md)에 있다.\n")
     w(f"버전 `{spec.version}` · API {len(spec.ops)}개\n")
@@ -465,6 +466,225 @@ def render_xlsx(spec, path):
     wb.save(path)
 
 
+# ── PDF ───────────────────────────────────────────────────────────
+
+# 한글 TrueType 글꼴. reportlab 은 PostScript 윤곽선(OTF/CFF, 예: AppleSDGothicNeo, Noto Sans CJK)을
+# 읽지 못한다. 굵은 글꼴이 없으면 보통 글꼴로 대신하고 제목은 크기·배경으로 구분한다.
+# 다른 글꼴을 쓰려면 WTS_PDF_FONT(, WTS_PDF_FONT_BOLD) 에 .ttf 경로를 준다.
+PDF_FONTS = [
+    (os.environ.get("WTS_PDF_FONT"), os.environ.get("WTS_PDF_FONT_BOLD")),
+    ("/usr/share/fonts/truetype/nanum/NanumGothic.ttf",            # Linux: fonts-nanum
+     "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"),
+    ("C:/Windows/Fonts/malgun.ttf", "C:/Windows/Fonts/malgunbd.ttf"),  # Windows: 맑은 고딕
+    ("/System/Library/Fonts/Supplemental/AppleGothic.ttf", None),  # macOS
+]
+
+
+def render_pdf(spec, path):
+    """PDF 를 만든다. 만들지 못하면 이유를 돌려준다(md/xlsx 생성은 막지 않는다)."""
+    try:
+        from xml.sax.saxutils import escape
+        from reportlab import rl_config
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib.units import mm
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        from reportlab.platypus import (CondPageBreak, PageBreak, Paragraph, SimpleDocTemplate,
+                                        Spacer, Table, TableStyle, XPreformatted)
+    except ImportError:
+        return "reportlab 이 없다 (pip install reportlab)"
+
+    regular, bold = next(((r, b) for r, b in PDF_FONTS if r and os.path.exists(r)), (None, None))
+    if not regular:
+        return "한글 TrueType 글꼴을 찾지 못했다 (WTS_PDF_FONT 에 .ttf 경로를 준다)"
+    pdfmetrics.registerFont(TTFont("KR", regular))
+    pdfmetrics.registerFont(TTFont("KR-B", bold if bold and os.path.exists(bold) else regular))
+    pdfmetrics.registerFontFamily("KR", normal="KR", bold="KR-B", italic="KR", boldItalic="KR-B")
+    rl_config.invariant = 1  # 생성 시각·ID를 고정한다. 명세가 같으면 PDF 바이트도 같다
+
+    INK, MUTED = colors.HexColor("#1F2328"), colors.HexColor("#57606A")
+    LINE, HEAD_BG = colors.HexColor("#D0D7DE"), colors.HexColor("#F2F4F7")
+    BAND, CODE_BG = colors.HexColor("#DDE4EE"), colors.HexColor("#F6F8FA")
+    LINK = colors.HexColor("#1F4E79")
+
+    def style(name, **kw):
+        base = dict(fontName="KR", fontSize=8.5, leading=11.5, textColor=INK)
+        base.update(kw)
+        return ParagraphStyle(name, **base)
+
+    S = {
+        "title": style("title", fontName="KR-B", fontSize=20, leading=26, spaceAfter=4),
+        "sub": style("sub", fontSize=9.5, leading=13, textColor=MUTED, spaceAfter=10),
+        "h1": style("h1", fontName="KR-B", fontSize=15, leading=20, spaceBefore=6, spaceAfter=8),
+        "h2": style("h2", fontName="KR-B", fontSize=11.5, leading=15, spaceBefore=10, spaceAfter=5),
+        "api": style("api", fontName="KR-B", fontSize=11, leading=14),
+        "label": style("label", fontName="KR-B", fontSize=9, leading=12, spaceBefore=7, spaceAfter=3),
+        "meta": style("meta", fontSize=9, leading=12, textColor=MUTED, spaceBefore=3, spaceAfter=4),
+        "body": style("body", fontSize=9, leading=13, spaceAfter=4),
+        "note": style("note", fontSize=8.5, leading=12, textColor=MUTED, backColor=CODE_BG,
+                      borderPadding=6, leftIndent=6, rightIndent=6, spaceBefore=4, spaceAfter=12),
+        "cell": style("cell"),
+        # 필드명·타입·예시·URI 는 공백 없이 길다. CJK 줄바꿈은 아무 글자 사이에서나 끊을 수 있다.
+        "code": style("code", wordWrap="CJK"),
+        "head": style("head", fontName="KR-B", textColor=INK),
+        "pre": style("pre", fontSize=7.5, leading=9.8, backColor=CODE_BG, borderPadding=6,
+                     leftIndent=6, rightIndent=6, spaceBefore=6, spaceAfter=8),
+    }
+
+    def P(text, st="cell"):
+        return Paragraph(escape(cell_text(text)).replace("\n", "<br/>"), S[st])
+
+    def table(headers, rows, widths, code_cols=(), center_cols=()):
+        data = [[P(h, "head") for h in headers]]
+        for r in rows:
+            data.append([c if not isinstance(c, (str, int, float)) else
+                         P(c, "code" if i in code_cols else "cell") for i, c in enumerate(r)])
+        t = Table(data, colWidths=widths, repeatRows=1, hAlign="LEFT")
+        cmds = [("GRID", (0, 0), (-1, -1), 0.5, LINE),
+                ("BACKGROUND", (0, 0), (-1, 0), HEAD_BG),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]
+        t.setStyle(TableStyle(cmds))
+        return t
+
+    def heading(text, st, key, level):
+        h = Paragraph(f'<a name="{key}"/>{escape(text)}', S[st])
+        h.outline = (level, text, key)  # afterFlowable 이 PDF 책갈피로 만든다
+        return h
+
+    def pre(obj):
+        return XPreformatted(escape(pretty(obj)), S["pre"])
+
+    W = A4[0] - 30 * mm  # 본문 폭 (좌우 여백 15mm)
+    story = []
+    add = story.append
+
+    add(Paragraph("WTS 모의투자 API 명세서", S["title"]))
+    add(Paragraph(escape(f"버전 {spec.version} · API {len(spec.ops)}개 · Base URL {spec.base_url}"), S["sub"]))
+    add(Paragraph(
+        "이 문서는 생성물이다. 원본은 컨트롤러(@Operation)와 DTO(@Schema)이고 docs/api/openapi.yaml 을 거쳐 "
+        "./infra/scripts/generate-openapi.sh 가 만든다. 같은 내용이 api-spec.md, api-spec.xlsx 에 있다. "
+        "실시간 시세 WebSocket(/ws/market)과 Kafka 이벤트 계약은 docs/api/README.md 를 본다.", S["note"]))
+
+    add(heading("1. 공통", "h1", "sec-common", 0))
+    add(table(["항목", "내용"], [
+        ["Base URL", f"{spec.base_url} (Gateway). 각 서비스를 직접 호출하지 않는다"],
+        ["인증", "Authorization: Bearer {accessToken}. 토큰은 POST /api/users/mock-login 으로 발급한다. "
+                 "인증이 필요 없는 API는 API 목록의 인증 칸에 표시"],
+        ["데이터 형식", "JSON (UTF-8)"],
+        ["시각", "UTC, ISO-8601 (예: 2026-09-22T08:12:44.101Z). 화면 표시는 Asia/Seoul"],
+        ["금액", "원(KRW), JSON number. 소수점이 붙어 올 수 있다 (예: 80000.0000)"],
+    ], [28 * mm, W - 28 * mm]))
+
+    add(heading("공통 헤더", "h2", "sec-headers", 1))
+    add(table(["헤더", "방향", "설명"], [
+        ["Authorization", "요청", "인증이 필요한 API에 Bearer {accessToken}"],
+        ["Idempotency-Key", "요청", "주문 접수에만 필수. 같은 키로 같은 내용을 다시 보내면 기존 주문이 돌아온다"],
+        ["X-Trace-Id", "응답", "모든 응답에 붙는다. 에러 본문의 traceId와 같은 값이다"],
+    ], [34 * mm, 14 * mm, W - 48 * mm], code_cols=(0,)))
+
+    add(heading("에러 응답", "h2", "sec-error-body", 1))
+    add(Paragraph("성공하지 못한 요청은 모두 같은 형식의 본문을 돌려준다.", S["body"]))
+    error_ref = {"$ref": "#/components/schemas/ErrorResponse"}
+    add(pre(spec.example(error_ref)))
+    add(table(["필드", "타입", "설명"],
+              [[r["name"], r["type"], r["description"]] for r in spec.fields(error_ref)],
+              [30 * mm, 32 * mm, W - 62 * mm], code_cols=(0,)))
+
+    add(heading("에러 코드", "h2", "sec-error-codes", 1))
+    add(table(["코드", "HTTP", "메시지", "발생 API (No)"],
+              [[e["code"], e["status"], e["message"], error_where(spec, e["code"])]
+               for e in spec.error_codes.values()],
+              [52 * mm, 13 * mm, W - 107 * mm, 42 * mm], code_cols=(0, 3)))
+
+    add(PageBreak())
+    add(heading("2. API 목록", "h1", "sec-list", 0))
+    link = style("link", textColor=LINK)
+    rows = [[op["no"], op["tag"],
+             Paragraph(f'<a href="#api-{op["no"]}">{escape(op["summary"])}</a>', link),
+             op["method"], op["path"], "불필요" if op["public"] else "필요"] for op in spec.ops]
+    add(table(["No", "분류", "API", "Method", "URI", "인증"], rows,
+              [9 * mm, 19 * mm, 34 * mm, 16 * mm, W - 92 * mm, 14 * mm], code_cols=(3, 4)))
+
+    add(PageBreak())
+    add(heading("3. API 상세", "h1", "sec-detail", 0))
+    current = None
+    for op in spec.ops:
+        if op["tag"] != current:
+            current = op["tag"]
+            add(CondPageBreak(60 * mm))
+            add(heading(current, "h2", f"tag-{current}", 1))
+            if op["tag_description"]:
+                add(Paragraph(escape(op["tag_description"]), S["meta"]))
+        add(CondPageBreak(45 * mm))  # 제목만 페이지 끝에 홀로 남지 않게 한다
+        band = Table([[heading(f"{op['no']}. {op['summary']}", "api", f"api-{op['no']}", 2)]],
+                     colWidths=[W], hAlign="LEFT")
+        band.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), BAND),
+                                  ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                                  ("TOPPADDING", (0, 0), (-1, -1), 4),
+                                  ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
+        band.outline = band._cellvalues[0][0].outline
+        add(band)
+        add(Paragraph(escape(f"{op['method']}  {op['path']}  ·  {op['tag']}  ·  "
+                             f"인증 {'불필요' if op['public'] else '필요'}"), S["meta"]))
+        add(Paragraph(escape(op["description"]), S["body"]))
+
+        req = spec.request_rows(op)
+        if req:
+            add(Paragraph("요청", S["label"]))
+            add(table(["이름", "위치", "타입", "필수", "설명", "예시"],
+                      [[r["name"], r["in"], r["type"], "O" if r["required"] else "",
+                        r["description"], cell_text(r["example"])] for r in req],
+                      [32 * mm, 13 * mm, 30 * mm, 9 * mm, W - 122 * mm, 38 * mm],
+                      code_cols=(0, 5)))
+            if op["request_schema"]:
+                add(pre(spec.example(op["request_schema"])))
+
+        add(Paragraph(escape("응답 — " + spec.response_label(op)), S["label"]))
+        if op["response_schema"]:
+            add(table(["필드", "타입", "설명", "예시"],
+                      [[r["name"], r["type"], r["description"], cell_text(r["example"])]
+                       for r in spec.fields(op["response_schema"])],
+                      [52 * mm, 30 * mm, W - 120 * mm, 38 * mm], code_cols=(0, 3)))
+            add(pre(spec.example(op["response_schema"])))
+
+        errors = spec.errors_of(op)
+        if errors:
+            add(Paragraph("에러", S["label"]))
+            add(table(["HTTP", "코드", "설명"],
+                      [[e["status"], e["code"], e["message"]] for e in errors],
+                      [14 * mm, 56 * mm, W - 70 * mm], code_cols=(1,)))
+        add(Spacer(1, 8 * mm))
+
+    class Doc(SimpleDocTemplate):
+        def afterFlowable(self, flowable):
+            outline = getattr(flowable, "outline", None)
+            if outline:
+                level, title, key = outline
+                self.canv.bookmarkPage(key)
+                self.canv.addOutlineEntry(title, key, level=level, closed=level >= 1)
+
+    def footer(canv, doc):
+        canv.saveState()
+        canv.setStrokeColor(LINE)
+        canv.setLineWidth(0.5)
+        canv.line(15 * mm, 12 * mm, A4[0] - 15 * mm, 12 * mm)
+        canv.setFont("KR", 7.5)
+        canv.setFillColor(MUTED)
+        canv.drawString(15 * mm, 8 * mm, f"WTS 모의투자 API 명세서 · {spec.version}")
+        canv.drawRightString(A4[0] - 15 * mm, 8 * mm, str(doc.page))
+        canv.restoreState()
+
+    doc = Doc(path, pagesize=A4, leftMargin=15 * mm, rightMargin=15 * mm,
+              topMargin=15 * mm, bottomMargin=18 * mm,
+              title="WTS 모의투자 API 명세서", author="SeSac Team3", subject=f"API {spec.version}")
+    doc.build(story, onFirstPage=footer, onLaterPages=footer)
+    return None
+
+
 def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
@@ -479,6 +699,9 @@ def main():
     render_xlsx(spec, xlsx_path)
     print(md_path)
     print(xlsx_path)
+    pdf_path = os.path.join(out_dir, "api-spec.pdf")
+    skipped = render_pdf(spec, pdf_path)
+    print(f"PDF 건너뜀: {skipped}" if skipped else pdf_path)
     print(f"  API {len(spec.ops)}개 · 에러 코드 {len(spec.error_codes)}개")
 
 
