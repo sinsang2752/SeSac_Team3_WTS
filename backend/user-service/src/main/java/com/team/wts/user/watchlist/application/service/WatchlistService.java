@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.team.wts.common.error.DomainException;
 import com.team.wts.common.error.ErrorCode;
+import com.team.wts.common.market.StockSymbol;
 import com.team.wts.user.config.WatchlistProperties;
 import com.team.wts.user.watchlist.domain.WatchlistItem;
 import com.team.wts.user.watchlist.domain.WatchlistRepository;
@@ -41,7 +42,7 @@ public class WatchlistService {
     @Transactional
     public WatchlistItem add(String userId, String symbol) {
         if (!WatchlistItem.isValidSymbol(symbol)) {
-            throw new DomainException(ErrorCode.VALIDATION_FAILED, "종목코드는 6자리 숫자여야 합니다.");
+            throw new DomainException(ErrorCode.VALIDATION_FAILED, StockSymbol.FORMAT_MESSAGE);
         }
         return watchlists.findByUserIdAndSymbol(userId, symbol).orElseGet(() -> create(userId, symbol));
     }

@@ -2,10 +2,11 @@ package com.team.wts.user.watchlist.domain;
 
 import java.time.Instant;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import com.team.wts.common.market.StockSymbol;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,9 +26,6 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "watchlists")
 public class WatchlistItem {
-
-    /** 한국 주식 종목코드는 6자리 숫자다. */
-    private static final Pattern SYMBOL = Pattern.compile("\\d{6}");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -56,15 +54,15 @@ public class WatchlistItem {
     public static WatchlistItem of(String userId, String symbol) {
         Objects.requireNonNull(userId, "userId");
         Objects.requireNonNull(symbol, "symbol");
-        if (!SYMBOL.matcher(symbol).matches()) {
-            throw new IllegalArgumentException("종목코드는 6자리 숫자여야 한다: " + symbol);
+        if (!StockSymbol.isValid(symbol)) {
+            throw new IllegalArgumentException(StockSymbol.FORMAT_MESSAGE + " " + symbol);
         }
         return new WatchlistItem(userId, symbol);
     }
 
     /** 종목코드 형식이 맞는가. 컨트롤러가 400을 내려면 예외 없이 물어볼 수 있어야 한다. */
     public static boolean isValidSymbol(String symbol) {
-        return symbol != null && SYMBOL.matcher(symbol).matches();
+        return StockSymbol.isValid(symbol);
     }
 
     @PrePersist

@@ -12,6 +12,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/_env.sh"
 
 mkdir -p "$RUN_DIR"
 
+# 먼저 한 번만 컴파일한다. 네 서비스의 bootRun을 동시에 띄우면 각자 :common 을 다시 컴파일하면서
+# 같은 build 디렉터리를 서로 지우고 써서, 한쪽이 "bad class file"로 실패한다 (common이 바뀐 직후에 잘 난다).
+echo "컴파일: backend (처음이면 JDK · 의존성을 내려받느라 오래 걸린다)"
+(cd "$REPO_ROOT/backend" && ./gradlew classes --quiet --console=plain)
+
 for i in "${!SERVICE_NAMES[@]}"; do
   name="${SERVICE_NAMES[$i]}"
   port="${SERVICE_PORTS[$i]}"

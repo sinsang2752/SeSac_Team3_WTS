@@ -1,6 +1,6 @@
 import { PanelState } from '../../../components/PanelState'
 import { formatPrice, formatQuantity, formatSeoulDateTime } from '../../../lib/format'
-import { useStockName } from '../../market/useStockName'
+import { useStockNames } from '../../market/useStockNames'
 import { useOrderHistory } from '../useTradingQueries'
 import { rejectReasonLabel } from '../orderStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
@@ -12,7 +12,7 @@ import { OrderStatusBadge } from './OrderStatusBadge'
  */
 export function OrderHistory() {
   const { data: orders, isPending, isError } = useOrderHistory()
-  const nameOf = useStockName()
+  const nameOf = useStockNames((orders ?? []).map((item) => item.symbol))
 
   if (isPending) return <PanelState tone="loading">불러오는 중…</PanelState>
   if (isError) {

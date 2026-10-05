@@ -9,32 +9,45 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * 시세 관련 설정. (CLAUDE.md §19, §21, §31)
  *
- * @param provider mock | kis. 어댑터 선택 기준이다.
- * @param stocks   구독 대상 고정 종목 목록. MVP는 고정이고, Dynamic Subscription은 이후 단계다 (§21).
- * @param mock     Mock Market Mode 동작 파라미터
- * @param price    시세 유효성 판단 기준
+ * @param provider      mock | kis. 어댑터 선택 기준이다.
+ * @param pinnedSymbols 항상 시세를 받는 종목 (§57.2의 고정 종목). Phase 8-1에서는 시세 공급자가
+ *                      이 종목만 구독한다. 수요 기반 구독은 Phase 8-2에서 붙인다.
+ * @param master        종목 마스터 동기화 (§57.1)
+ * @param mock          Mock Market Mode 동작 파라미터
+ * @param price         시세 유효성 판단 기준
  */
 @ConfigurationProperties(prefix = "market")
 public record MarketProperties(
         String provider,
-        List<StockConfig> stocks,
+        List<String> pinnedSymbols,
+        Master master,
         Mock mock,
         Price price) {
 
     public MarketProperties {
-        stocks = stocks == null ? List.of() : List.copyOf(stocks);
+        pinnedSymbols = pinnedSymbols == null ? List.of() : List.copyOf(pinnedSymbols);
+        master = master == null ? new Master(null, null, null) : master;
         mock = mock == null ? new Mock(null, null, null, null) : mock;
         price = price == null ? new Price(null) : price;
     }
 
+    public boolean kis() {
+        return "kis".equalsIgnoreCase(provider);
+    }
+
     /**
-     * @param previousClose 전일 종가. 등락률 계산 기준이자 Mock 가격 흐름의 출발점이다.
+     * @param downloadBaseUrl 한국투자증권 종목정보 파일 위치. 파일 이름(kospi_code.mst.zip 등)을 뒤에 붙인다
+     * @param refreshAfter    kis 모드에서 기동할 때 마스터가 이보다 오래됐으면 새로 받는다
+     * @param downloadTimeout 연결 · 응답 대기 상한
      */
-    public record StockConfig(
-            String symbol,
-            String name,
-            String market,
-            BigDecimal previousClose) {
+    public record Master(String downloadBaseUrl, Duration refreshAfter, Duration downloadTimeout) {
+        public Master {
+            downloadBaseUrl = downloadBaseUrl == null || downloadBaseUrl.isBlank()
+                    ? "https://new.real.download.dws.co.kr/common/master/"
+                    : downloadBaseUrl;
+            refreshAfter = refreshAfter == null ? Duration.ofHours(20) : refreshAfter;
+            downloadTimeout = downloadTimeout == null ? Duration.ofSeconds(30) : downloadTimeout;
+        }
     }
 
     /**

@@ -1,6 +1,7 @@
 # ADR-0006. Mock 인증은 HMAC 서명 토큰으로 구현한다
 
-- 상태: 채택 (Phase 8에서 Cognito로 교체)
+- 상태: 채택 (공개 배포 직전 Phase 11에서 Cognito로 교체, CLAUDE.md §62.4)
+- 갱신: ADR-0018 — Cognito는 공개 배포 직전(Phase 11)에 붙이고, 그 전에는 배포하지 않는다
 - 일자: 2026-09-21
 - 관련: CLAUDE.md §6.4 (인증 우선순위), §24, §52, §48
 
@@ -47,6 +48,6 @@ base64url(userId:expiresAtEpochSecond) . base64url(HMAC-SHA256)
 
 ## 후속 작업
 
-Phase 8에서 Amazon Cognito로 교체한다 (§48).
+공개 배포 직전(Phase 11)에 Amazon Cognito로 교체한다 (CLAUDE.md §62.4). 그 전에는 배포하지 않는다.
 그때 `AuthenticationWebFilter`가 Cognito JWK로 JWT를 검증하도록 바꾸고,
 `MockAuthToken`과 `POST /api/users/mock-login`은 제거한다.

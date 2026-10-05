@@ -293,7 +293,7 @@ MARKET_PROVIDER=kis    # 한국투자증권 OpenAPI 실시간 시세
 `kis` 로 쓰려면 루트 `.env` 에 자격증명이 필요하다. `.env` 는 git에 올라가지 않는다 (§33).
 
 ```env
-KIS_ENVIRONMENT=vts    # vts 모의투자 / real 실전투자 — 도메인도 앱키도 다르다
+KIS_ENVIRONMENT=vts    # 모의투자(vts)만 쓴다. 시세 전용이다 (CLAUDE.md §62.3)
 KIS_APP_KEY=
 KIS_APP_SECRET=
 ```

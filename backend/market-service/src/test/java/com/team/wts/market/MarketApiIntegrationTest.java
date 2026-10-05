@@ -40,40 +40,95 @@ class MarketApiIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    @DisplayName("종목 목록은 설정된 5개 종목을 돌려준다")
-    void listsConfiguredStocks() {
-        ResponseEntity<List<Map<String, Object>>> response = rest.exchange(
-                "/api/market/stocks", org.springframework.http.HttpMethod.GET, null,
-                new ParameterizedTypeReference<>() { });
+    @DisplayName("기동하면 저장소 스냅샷으로 전 종목 마스터가 채워진다 (Mock, 네트워크 없음)")
+    void loadsFullMasterOnStartup() {
+        Map<String, Object> page = get("/api/market/stocks?size=1").getBody();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).hasSize(5);
-        assertThat(response.getBody()).anySatisfy(stock -> {
-            assertThat(stock.get("symbol")).isEqualTo(SAMSUNG);
-            assertThat(stock.get("name")).isEqualTo("삼성전자");
-        });
+        // 2026-10 스냅샷: KOSPI 주권 914 + KOSDAQ 주권 1,805
+        assertThat(((Number) page.get("totalElements")).longValue()).isGreaterThan(2_000);
+        assertThat(items(page)).hasSize(1);
     }
 
     @Test
-    @DisplayName("종목명으로 검색한다")
-    void searchesByName() {
-        ResponseEntity<List<Map<String, Object>>> response = rest.exchange(
-                "/api/market/stocks?keyword=삼성", org.springframework.http.HttpMethod.GET, null,
-                new ParameterizedTypeReference<>() { });
+    @DisplayName("같은 순위 안에서는 시가총액이 큰 종목이 먼저다. '삼성'을 치면 삼성전자가 맨 앞이다")
+    void ranksByMarketCapWithinTheSameMatch() {
+        List<Map<String, Object>> found = items(get("/api/market/stocks?keyword=삼성&size=3").getBody());
 
-        assertThat(response.getBody()).hasSize(1);
-        assertThat(response.getBody().get(0).get("symbol")).isEqualTo(SAMSUNG);
+        // 이름순이었다면 영문이 한글보다 앞서 삼성E&A가 먼저 나온다.
+        assertThat(found.get(0).get("symbol")).isEqualTo(SAMSUNG);
+        assertThat(items(get("/api/market/stocks?size=1").getBody()).get(0).get("symbol")).isEqualTo(SAMSUNG);
     }
 
     @Test
-    @DisplayName("종목코드로 검색한다")
-    void searchesBySymbol() {
-        ResponseEntity<List<Map<String, Object>>> response = rest.exchange(
-                "/api/market/stocks?keyword=00066", org.springframework.http.HttpMethod.GET, null,
-                new ParameterizedTypeReference<>() { });
+    @DisplayName("종목명으로 검색한다. 응답에 마스터 정보가 실린다")
+    void searchesByNamePrefixFirst() {
+        List<Map<String, Object>> found = items(get("/api/market/stocks?keyword=삼성전자&size=5").getBody());
 
-        assertThat(response.getBody()).hasSize(1);
-        assertThat(response.getBody().get(0).get("symbol")).isEqualTo("000660");
+        assertThat(found.get(0).get("symbol")).isEqualTo(SAMSUNG);
+        assertThat(found.get(0)).containsEntry("name", "삼성전자")
+                .containsEntry("market", "KOSPI")
+                .containsEntry("standardCode", "KR7005930003")
+                .containsEntry("tradable", true);
+        assertThat(found.get(0).get("basePrice")).isNotNull();
+    }
+
+    @Test
+    @DisplayName("종목코드로 검색하면 코드가 일치하는 종목이 맨 앞이다")
+    void searchesBySymbolExactFirst() {
+        List<Map<String, Object>> found = items(get("/api/market/stocks?keyword=000660").getBody());
+
+        assertThat(found.get(0).get("symbol")).isEqualTo("000660");
+    }
+
+    @Test
+    @DisplayName("영문이 섞인 종목코드도 찾는다. 소문자로 쳐도 찾는다")
+    void findsAlphanumericSymbols() {
+        assertThat(items(get("/api/market/stocks?keyword=0001a0").getBody()))
+                .extracting(stock -> stock.get("symbol")).contains("0001A0");
+        assertThat(get("/api/market/stocks/0001A0").getBody()).containsEntry("name", "덕양에너젠");
+    }
+
+    @Test
+    @DisplayName("시장으로 거른다")
+    void filtersByMarket() {
+        List<Map<String, Object>> kosdaq = items(get("/api/market/stocks?market=KOSDAQ&size=50").getBody());
+
+        assertThat(kosdaq).isNotEmpty().allSatisfy(stock -> assertThat(stock.get("market")).isEqualTo("KOSDAQ"));
+    }
+
+    @Test
+    @DisplayName("페이지를 넘기면 겹치지 않는 다음 종목이 온다")
+    void pagesDoNotOverlap() {
+        List<Object> first = symbols(items(get("/api/market/stocks?page=0&size=20").getBody()));
+        List<Object> second = symbols(items(get("/api/market/stocks?page=1&size=20").getBody()));
+
+        assertThat(first).hasSize(20).doesNotContainAnyElementsOf(second);
+    }
+
+    @Test
+    @DisplayName("검색어의 % · _ 는 와일드카드가 아니라 글자 그대로 찾는다")
+    void treatsLikeWildcardsLiterally() {
+        Map<String, Object> page = get("/api/market/stocks?keyword=%25").getBody();
+
+        assertThat(((Number) page.get("totalElements")).longValue()).isZero();
+    }
+
+    @Test
+    @DisplayName("symbols 로 여러 종목을 요청한 순서대로 한 번에 받는다. 없는 코드는 빠진다")
+    void looksUpManySymbolsAtOnce() {
+        List<Map<String, Object>> found =
+                items(get("/api/market/stocks?symbols=035720,005930,999999").getBody());
+
+        assertThat(symbols(found)).containsExactly("035720", SAMSUNG);
+    }
+
+    @Test
+    @DisplayName("페이지 크기가 범위를 벗어나거나 시장 값이 틀리면 400")
+    void rejectsInvalidPaging() {
+        assertThat(get("/api/market/stocks?size=0").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(get("/api/market/stocks?size=101").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(get("/api/market/stocks?page=-1").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(get("/api/market/stocks?market=NASDAQ").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
@@ -171,5 +226,14 @@ class MarketApiIntegrationTest extends IntegrationTestBase {
     private ResponseEntity<Map<String, Object>> get(String path) {
         return rest.exchange(path, org.springframework.http.HttpMethod.GET, null,
                 new ParameterizedTypeReference<>() { });
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> items(Map<String, Object> page) {
+        return (List<Map<String, Object>>) page.get("items");
+    }
+
+    private static List<Object> symbols(List<Map<String, Object>> stocks) {
+        return stocks.stream().map(stock -> stock.get("symbol")).toList();
     }
 }

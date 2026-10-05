@@ -11,7 +11,8 @@ import org.springframework.util.unit.DataSize;
  * <p>자격증명은 환경변수로만 들어온다. 기본값을 두지 않는다 (§52).
  * {@code market.provider=mock} 이면 이 값들은 쓰이지 않는다.
  *
- * @param environment 실전투자와 모의투자는 <b>도메인도 앱키도 다르다</b>. 섞으면 인증이 실패한다.
+ * @param environment 모의투자(VTS)만 있다. 이 서비스는 무조건 모의투자다 (CLAUDE.md §62.3).
+ *                    {@code KIS_ENVIRONMENT=real}이면 값을 바인딩하지 못해 기동이 멈춘다. 의도한 동작이다.
  */
 @ConfigurationProperties(prefix = "kis")
 public record KisProperties(
@@ -41,10 +42,11 @@ public record KisProperties(
         }
     }
 
-    /** 접속 도메인. 둘은 완전히 분리된 시스템이다. */
+    /**
+     * 접속 도메인. 실전투자(REAL)는 두지 않는다. 시세만 받으므로 모의투자 앱키로 충분하고,
+     * 실전 앱키가 코드 경로에 들어올 일 자체를 없앤다 (CLAUDE.md §62.3).
+     */
     public enum Environment {
-        /** 실전투자. */
-        REAL("https://openapi.koreainvestment.com:9443", "ws://ops.koreainvestment.com:21000"),
         /** 모의투자. 국내주식 실시간 체결가·호가를 지원한다. */
         VTS("https://openapivts.koreainvestment.com:29443", "ws://ops.koreainvestment.com:31000");
 

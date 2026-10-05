@@ -7,11 +7,11 @@ import {
   fetchExecutions,
   fetchOrders,
   fetchPositions,
-  fetchStocks,
   placeOrder,
 } from '../../lib/api'
 import { formatQuantity } from '../../lib/format'
 import type { Order, PlaceOrderRequest } from '../../lib/types'
+import { useStockNames } from '../market/useStockNames'
 import { useToastStore } from '../../stores/toastStore'
 import { useUserStore } from '../../stores/userStore'
 
@@ -106,11 +106,8 @@ export function useFillWatcher() {
   const { data: executions } = useExecutions()
   const refresh = useRefreshTrading()
   const pushToast = useToastStore((state) => state.push)
-  const { data: stocks } = useQuery({
-    queryKey: ['stocks'],
-    queryFn: () => fetchStocks(),
-    staleTime: 5 * 60 * 1000,
-  })
+  // 새 체결의 종목명이 아직 없으면 종목코드로 알린다. 알림을 늦추지 않는다.
+  const nameOf = useStockNames((executions ?? []).map((execution) => execution.symbol))
 
   const openOrderKey = (openOrders ?? []).map((order) => order.orderId).join(',')
   const previousKey = useRef<string | null>(null)
@@ -136,11 +133,11 @@ export function useFillWatcher() {
     for (const execution of executions) {
       if (seen.has(execution.executionId)) continue
       seen.add(execution.executionId)
-      const name =
-        stocks?.find((stock) => stock.symbol === execution.symbol)?.name ?? execution.symbol
-      pushToast(`${name} ${formatQuantity(execution.quantity)}가 모의 체결되었습니다.`)
+      pushToast(
+        `${nameOf(execution.symbol)} ${formatQuantity(execution.quantity)}가 모의 체결되었습니다.`,
+      )
     }
-  }, [executions, stocks, pushToast])
+  }, [executions, nameOf, pushToast])
 }
 
 export function usePlaceOrder() {

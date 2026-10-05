@@ -13,7 +13,7 @@ const DEMO_NICKNAME = '데모투자자'
 /**
  * Mock Login. (CLAUDE.md §6.4, §47 Phase 1, ui-requirements §8)
  *
- * <p>비밀번호가 없다. 이메일로 사용자를 찾고 없으면 만든다. 실제 인증은 Phase 8이다.
+ * <p>비밀번호가 없다. 이메일로 사용자를 찾고 없으면 만든다. 실제 인증은 공개 배포 직전(Phase 11)에 Cognito로 붙인다 (CLAUDE.md §62.4).
  *
  * <p>초기 지급 금액은 서버 설정값이라 여기에 적지 않는다 (CLAUDE.md §9.1).
  * 화면이 확정된 금액을 약속하면 설정을 바꿨을 때 거짓말이 된다.

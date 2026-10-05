@@ -51,38 +51,83 @@ paths:
       tags:
       - 종목
       summary: 종목 목록·검색
-      description: keyword를 주면 종목코드 또는 종목명 부분일치로 검색한다. 생략하면 전체 목록이다.
+      description: KOSPI · KOSDAQ 상장 주권을 페이지로 돌려준다. keyword를 주면 종목코드 또는 종목명 부분일치로 검색한다(종목코드 일치 → 종목코드로
+        시작 → 이름으로 시작 순). symbols를 주면 그 종목만 돌려주고 다른 조건은 무시한다. 이 경우 상장폐지 종목도 포함된다(보유 종목 이름 표시용).
       operationId: list
       parameters:
       - name: keyword
         in: query
-        description: 종목코드 또는 종목명 일부. 생략하면 전체
+        description: 종목코드 또는 종목명 일부. 생략하면 전체 (이름순)
         required: false
         schema:
           type: string
         example: 삼성
+      - name: market
+        in: query
+        description: 시장. 생략하면 전체
+        required: false
+        schema:
+          type: string
+          enum:
+          - KOSPI
+          - KOSDAQ
+      - name: symbols
+        in: query
+        description: 쉼표로 구분한 종목코드. 최대 100개
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+        example: 005930,000660
+      - name: page
+        in: query
+        description: 페이지 번호 (0부터)
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+        example: 0
+      - name: size
+        in: query
+        description: 페이지 크기. 1 ~ 100
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+        example: 20
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/StockResponse'
+                $ref: '#/components/schemas/StockPageResponse'
+        '400':
+          description: 'Bad Request
+
+
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
       security: []
-      x-error-codes: []
+      x-error-codes:
+      - VALIDATION_FAILED
   /api/market/stocks/{symbol}:
     get:
       tags:
       - 종목
       summary: 종목 상세
-      description: 종목코드로 종목 하나를 조회한다.
+      description: 종목코드로 종목 하나를 조회한다. 상장폐지 종목도 돌려준다(tradable=false).
       operationId: detail
       parameters:
       - name: symbol
         in: path
-        description: 종목코드 (6자리)
+        description: 종목코드 (영문 대문자·숫자 6자리)
         required: true
         schema:
           type: string
@@ -1050,9 +1095,9 @@ components:
       properties:
         symbol:
           type: string
-          description: 종목코드. 6자리 숫자
+          description: 종목코드. 영문 대문자·숫자 6자리
           example: 005930
-          pattern: \d{6}
+          pattern: '[0-9A-Z]{6}'
         side:
           type: string
           description: BUY 매수 / SELL 매도
@@ -1248,13 +1293,40 @@ components:
           format: date-time
           description: 시세 시각 (UTC, ISO-8601)
           example: '2026-09-22T08:12:44.101Z'
+    StockPageResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          description: 이 페이지의 종목
+          items:
+            $ref: '#/components/schemas/StockResponse'
+        page:
+          type: integer
+          format: int32
+          description: 페이지 번호 (0부터)
+          example: 0
+        size:
+          type: integer
+          format: int32
+          description: 페이지 크기
+          example: 20
+        totalElements:
+          type: integer
+          format: int64
+          description: 조건에 맞는 전체 종목 수
+          example: 2719
     StockResponse:
       type: object
       properties:
         symbol:
           type: string
-          description: 종목코드 (6자리)
+          description: 종목코드 (영문 대문자·숫자 6자리)
           example: 005930
+        standardCode:
+          type: string
+          description: 표준코드 (ISIN)
+          example: KR7005930003
         name:
           type: string
           description: 종목명
@@ -1262,7 +1334,18 @@ components:
         market:
           type: string
           description: 시장 구분
+          enum:
+          - KOSPI
+          - KOSDAQ
           example: KOSPI
+        basePrice:
+          type: number
+          description: 기준가 (원). 가격제한폭의 기준이다. 신규 상장 직후처럼 모르면 null
+          example: 276000
+        tradable:
+          type: boolean
+          description: 주문을 받을 수 있는가. 거래정지 · 상장폐지면 false
+          example: true
     UserResponse:
       type: object
       properties:

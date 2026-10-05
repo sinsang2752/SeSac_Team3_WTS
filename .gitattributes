@@ -1,0 +1,3 @@
+# KIS 종목정보 파일. cp949 고정폭이라 줄바꿈·인코딩 변환이 일어나면 파싱이 깨진다.
+*.mst binary
+*.mst.zip binary

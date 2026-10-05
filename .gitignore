@@ -7,7 +7,11 @@
 .gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
-out/
+# IntelliJ 빌드 출력은 모듈 루트의 out/ 뿐이다. 그냥 out/ 이라고 쓰면 소스의 adapter/out/ 패키지까지
+# 무시되어 커밋에서 빠진다 (실제로 31개 파일이 빠져 있었다).
+/out/
+/backend/out/
+/backend/*/out/
 *.log
 
 # ---- Node / Frontend ----

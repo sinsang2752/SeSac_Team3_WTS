@@ -14,12 +14,18 @@ import { OpenOrders } from '../features/trading/components/OpenOrders'
 import { OrderForm } from '../features/trading/components/OrderForm'
 import { PositionTable } from '../features/trading/components/PositionTable'
 import { useFillWatcher, useOpenOrders } from '../features/trading/useTradingQueries'
-import { fetchStocks } from '../lib/api'
+import { ApiRequestError, fetchStock } from '../lib/api'
 import { useMarketStore } from '../stores/marketStore'
 import { useToastStore } from '../stores/toastStore'
 import { useUserStore } from '../stores/userStore'
 
 type BottomTab = 'openOrders' | 'executions' | 'positions'
+
+/**
+ * 종목을 고르지 않고 /wts 로 들어왔을 때 여는 종목.
+ * 종목 마스터가 아니라 화면의 기본 선택이다. 마스터는 서버에 있다 (CLAUDE.md §57.1).
+ */
+const DEFAULT_SYMBOL = '005930'
 
 /**
  * `/wts` 와 `/wts/:symbol` (CLAUDE.md §26, §27, ui-requirements §5.1)
@@ -38,27 +44,38 @@ export function WtsPage() {
     null,
   )
 
-  const { data: stocks, isPending, isError } = useQuery({
-    queryKey: ['stocks'],
-    queryFn: () => fetchStocks(),
-    staleTime: 5 * 60 * 1000, // 종목 목록은 자주 바뀌지 않는다.
+  // URL이 선택 상태의 원본이다. 스토어는 시세 컴포넌트들이 참조하도록 맞춰만 둔다.
+  const selectedSymbol = routeSymbol ?? DEFAULT_SYMBOL
+  const {
+    data: selectedStock,
+    isPending,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ['stock', selectedSymbol],
+    queryFn: () => fetchStock(selectedSymbol),
+    staleTime: 5 * 60 * 1000,
+    // 없는 종목(404)은 다시 물어도 없다.
+    retry: (count, cause) => !(cause instanceof ApiRequestError && cause.isDomainError) && count < 2,
   })
+  const notFound = error instanceof ApiRequestError && error.code === 'SYMBOL_NOT_FOUND'
 
-  const symbols = useMemo(() => (stocks ?? []).map((stock) => stock.symbol), [stocks])
-  useMarketStream(symbols)
+  // 시세는 화면에 보이는 종목만 받는다: 선택한 종목 + 왼쪽 목록 (CLAUDE.md §57.3).
+  const [listSymbols, setListSymbols] = useState<string[]>([])
+  const streamSymbols = useMemo(
+    () => [selectedSymbol, ...listSymbols],
+    [selectedSymbol, listSymbols],
+  )
+  useMarketStream(streamSymbols)
   // 서버가 미체결 지정가를 자동 체결하면(Phase 4) 계좌·포지션도 따라 바뀐다.
   useFillWatcher()
   const { data: openOrders } = useOpenOrders()
 
   const selectSymbol = useMarketStore((state) => state.selectSymbol)
 
-  // URL이 선택 상태의 원본이다. 스토어는 시세 컴포넌트들이 참조하도록 맞춰만 둔다.
-  const selectedSymbol = routeSymbol ?? symbols[0] ?? null
   useEffect(() => {
-    if (selectedSymbol) selectSymbol(selectedSymbol)
+    selectSymbol(selectedSymbol)
   }, [selectedSymbol, selectSymbol])
-
-  const selectedStock = (stocks ?? []).find((stock) => stock.symbol === selectedSymbol)
 
   const tabs: { id: BottomTab; label: string; count?: number }[] = [
     { id: 'openOrders', label: '미체결 주문', count: openOrders?.length },
@@ -69,15 +86,18 @@ export function WtsPage() {
   return (
     <div className="workspace">
       <StockSearch
-        stocks={stocks ?? []}
         selectedSymbol={selectedSymbol}
-        isPending={isPending}
         onSelect={(symbol) => navigate(`/wts/${symbol}`)}
+        onVisibleSymbolsChange={setListSymbols}
       />
 
       <div className="workspace__center">
         <Panel>
-          {isError ? (
+          {notFound ? (
+            <PanelState hint="종목코드를 확인하거나 왼쪽에서 검색해 주세요.">
+              종목을 찾을 수 없습니다: {selectedSymbol}
+            </PanelState>
+          ) : isError ? (
             <PanelState tone="error" hint="잠시 후 다시 확인해 주세요.">
               종목 정보를 불러오지 못했습니다.
             </PanelState>

@@ -8,7 +8,7 @@ import {
   formatQuantity,
   formatRate,
 } from '../../../lib/format'
-import { useStockName } from '../../market/useStockName'
+import { useStockNames } from '../../market/useStockNames'
 import { useMarketStore } from '../../../stores/marketStore'
 import { usePositions } from '../useTradingQueries'
 
@@ -22,7 +22,7 @@ import { usePositions } from '../useTradingQueries'
 export function PositionTable() {
   const prices = useMarketStore((state) => state.prices)
   const { data: positions, isPending, isError } = usePositions()
-  const nameOf = useStockName()
+  const nameOf = useStockNames((positions ?? []).map((item) => item.symbol))
 
   if (isPending) return <PanelState tone="loading">불러오는 중…</PanelState>
   if (isError) {

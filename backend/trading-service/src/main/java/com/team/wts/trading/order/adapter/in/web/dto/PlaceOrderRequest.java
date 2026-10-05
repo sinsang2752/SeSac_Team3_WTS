@@ -3,6 +3,7 @@ package com.team.wts.trading.order.adapter.in.web.dto;
 import java.math.BigDecimal;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.team.wts.common.market.StockSymbol;
 import com.team.wts.trading.order.application.command.PlaceOrderCommand;
 import com.team.wts.trading.order.domain.OrderSide;
 import com.team.wts.trading.order.domain.OrderType;
@@ -26,8 +27,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 public record PlaceOrderRequest(
         @NotNull
-        @Pattern(regexp = "\\d{6}", message = "종목코드는 6자리 숫자입니다.")
-        @Schema(description = "종목코드. 6자리 숫자", example = "005930")
+        @Pattern(regexp = StockSymbol.REGEX, message = StockSymbol.FORMAT_MESSAGE)
+        @Schema(description = "종목코드. 영문 대문자·숫자 6자리", example = "005930")
         String symbol,
 
         @NotNull

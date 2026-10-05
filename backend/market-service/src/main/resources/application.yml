@@ -56,7 +56,7 @@ spring:
 # 한국투자증권 OpenAPI (CLAUDE.md §19, §20). market.provider=kis 일 때만 쓰인다.
 # 자격증명은 환경변수로만 들어온다. 기본값을 두지 않는다 (§33, §52).
 kis:
-  # vts: 모의투자 / real: 실전투자. 도메인도 앱키도 서로 다르다.
+  # vts(모의투자)만 쓴다. 이 서비스는 무조건 모의투자다 (CLAUDE.md §62.3). real은 기동이 멈춘다.
   environment: ${KIS_ENVIRONMENT:vts}
   app-key: ${KIS_APP_KEY:}
   app-secret: ${KIS_APP_SECRET:}
@@ -89,32 +89,20 @@ market:
   # kis : 한국투자증권 OpenAPI 연동 (Phase 6)
   provider: ${MARKET_PROVIDER:mock}
 
-  # 구독 대상 고정 종목 (CLAUDE.md §21, §31).
-  # Dynamic Subscription은 이후 단계에서 붙인다.
-  #
-  # previous-close 는 Mock 모드의 출발 가격이다. kis 모드에서는 쓰이지 않는다
-  # (실제 전일 종가가 시세에 실려 온다).
-  stocks:
-    - symbol: "005930"
-      name: "삼성전자"
-      market: KOSPI
-      previous-close: 274000
-    - symbol: "000660"
-      name: "SK하이닉스"
-      market: KOSPI
-      previous-close: 1834000
-    - symbol: "035420"
-      name: "NAVER"
-      market: KOSPI
-      previous-close: 197900
-    - symbol: "035720"
-      name: "카카오"
-      market: KOSPI
-      previous-close: 33200
-    - symbol: "005380"
-      name: "현대차"
-      market: KOSPI
-      previous-close: 359000
+  # 항상 시세를 받는 종목 (CLAUDE.md §57.2의 고정 종목).
+  # Phase 8-1에서는 시세 공급자가 이 종목만 구독한다. 수요 기반 구독은 Phase 8-2에서 붙인다.
+  # 종목 정보(이름 · 기준가)는 여기 두지 않는다. 종목 마스터(stocks 테이블)에서 읽는다.
+  pinned-symbols: ${MARKET_PINNED_SYMBOLS:005930,000660,035420,035720,005380}
+
+  # 종목 마스터 (CLAUDE.md §57.1). 한국투자증권 공개 종목정보 파일. 인증이 필요 없다.
+  # mock 모드는 내려받지 않고 저장소의 스냅샷(resources/master/*.zip)만 쓴다.
+  master:
+    download-base-url: ${MARKET_MASTER_DOWNLOAD_BASE_URL:https://new.real.download.dws.co.kr/common/master/}
+    # kis 모드에서 기동할 때 마스터가 이보다 오래됐으면 새로 받는다.
+    refresh-after: 20h
+    download-timeout: 30s
+    # 매 영업일 장 시작 전 (Asia/Seoul)
+    sync-cron: "0 0 8 * * MON-FRI"
 
   mock:
     tick-interval: ${MARKET_MOCK_TICK_INTERVAL:1s}

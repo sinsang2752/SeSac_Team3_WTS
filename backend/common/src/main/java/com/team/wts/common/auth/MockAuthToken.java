@@ -19,7 +19,7 @@ import javax.crypto.spec.SecretKeySpec;
  * JDK에 내장된 {@link Mac}만 사용하므로 JWT 라이브러리를 추가하지 않는다 (CLAUDE.md §14).
  *
  * <p><b>한계</b>: 서명만 검증할 뿐 폐기(revocation) 수단이 없고, 비밀키가 유출되면
- * 임의의 사용자를 위조할 수 있다. 실제 인증은 Phase 8에서 Amazon Cognito로 교체한다 (§48).
+ * 임의의 사용자를 위조할 수 있다. 실제 인증은 공개 배포 직전(Phase 11)에 Amazon Cognito로 교체한다 (§62.4).
  */
 public final class MockAuthToken {
 

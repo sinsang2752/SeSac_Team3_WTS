@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import { Panel } from '../../../components/Panel'
 import { PanelState } from '../../../components/PanelState'
+import { fetchStocks, fetchStocksBySymbols } from '../../../lib/api'
 import { directionOf, formatPrice, formatRate } from '../../../lib/format'
 import type { Stock } from '../../../lib/types'
 import { useMarketStore } from '../../../stores/marketStore'
@@ -10,56 +12,69 @@ import { WatchStar } from '../../watchlist/components/WatchStar'
 import { useWatchlist } from '../../watchlist/useWatchlist'
 
 interface Props {
-  stocks: Stock[]
   onSelect: (symbol: string) => void
   selectedSymbol: string | null
-  /** 종목 목록을 아직 받지 못했다. */
-  isPending?: boolean
+  /** 지금 목록에 보이는 종목. 상위가 이 종목만 시세를 구독한다 (CLAUDE.md §57.3). */
+  onVisibleSymbolsChange?: (symbols: string[]) => void
 }
 
+/** 검색 결과 한 번에 보여줄 개수. 더 찾으려면 검색어를 좁힌다. */
+const RESULT_SIZE = 30
+/** 타자를 칠 때마다 요청하지 않는다. */
+const SEARCH_DELAY_MS = 250
+
 /**
- * 종목 검색과 관심종목. (CLAUDE.md §28, ui-requirements §5.2)
+ * 종목 검색과 관심종목. (CLAUDE.md §28, §57.3, ui-requirements §5.2)
  *
- * <p>검색어를 치면 전체 종목에서 찾고, 비우면 관심종목만 보여준다.
- * 별은 관심종목만 바꾼다. 행 선택과 분리되어 있다.
- *
- * <p>서버 검색(`?keyword=`)을 쓰지 않는 이유는 종목 목록이 이미 클라이언트에 있기 때문이다.
- * 종목 수가 늘어나면 서버 검색으로 바꾼다.
+ * <p>검색어를 치면 서버에서 전 종목(약 2,700개)을 찾는다. 비우면 관심종목만 보여준다.
+ * 전체 목록을 받아 두지 않는다. 별은 관심종목만 바꾼다. 행 선택과 분리되어 있다.
  */
-export function StockSearch({ stocks, onSelect, selectedSymbol, isPending }: Props) {
+export function StockSearch({ onSelect, selectedSymbol, onVisibleSymbolsChange }: Props) {
   const [keyword, setKeyword] = useState('')
+  const query = useDebounced(keyword.trim(), SEARCH_DELAY_MS)
+  const searching = query.length > 0
   const prices = useMarketStore((state) => state.prices)
   const session = useUserStore((state) => state.session)
   const { data: watchlist } = useWatchlist()
 
-  const watchedSymbols = useMemo(
-    () => new Set((watchlist ?? []).map((item) => item.symbol)),
-    [watchlist],
-  )
+  const watchedSymbols = useMemo(() => (watchlist ?? []).map((item) => item.symbol), [watchlist])
 
-  const trimmed = keyword.trim()
-  const searching = trimmed.length > 0
-  // 관심종목이 비어 있으면 전체를 보여준다. 빈 화면에서 시작하지 않게 한다.
-  const showingAll = !searching && watchedSymbols.size === 0
+  const search = useQuery({
+    queryKey: ['stocks', 'search', query],
+    queryFn: () => fetchStocks({ keyword: query, size: RESULT_SIZE }),
+    enabled: searching,
+    staleTime: 60 * 1000,
+    // 한 글자 더 칠 때 목록이 비었다가 다시 차지 않게 이전 결과를 들고 있는다.
+    placeholderData: keepPreviousData,
+  })
 
-  const visible = useMemo(() => {
-    if (searching) {
-      const needle = trimmed.toLowerCase()
-      return stocks.filter(
-        (stock) => stock.symbol.includes(trimmed) || stock.name.toLowerCase().includes(needle),
-      )
-    }
-    if (watchedSymbols.size === 0) return stocks
-    return stocks.filter((stock) => watchedSymbols.has(stock.symbol))
-  }, [searching, trimmed, stocks, watchedSymbols])
+  const watched = useQuery({
+    queryKey: ['stocks', 'bySymbols', [...watchedSymbols].sort()],
+    queryFn: () => fetchStocksBySymbols(watchedSymbols),
+    enabled: !searching && watchedSymbols.length > 0,
+    staleTime: 60 * 60 * 1000,
+  })
 
-  const title = searching ? '검색 결과' : showingAll ? '전체 종목' : '관심종목'
+  const visible: Stock[] = useMemo(() => {
+    if (searching) return search.data?.items ?? []
+    // 담은 순서를 지킨다. 서버 응답 순서에 기대지 않는다.
+    const bySymbol = new Map((watched.data ?? []).map((stock) => [stock.symbol, stock]))
+    return watchedSymbols.flatMap((symbol) => bySymbol.get(symbol) ?? [])
+  }, [searching, search.data, watched.data, watchedSymbols])
+
+  const visibleKey = visible.map((stock) => stock.symbol).join(',')
+  useEffect(() => {
+    onVisibleSymbolsChange?.(visibleKey.length > 0 ? visibleKey.split(',') : [])
+  }, [visibleKey, onVisibleSymbolsChange])
+
+  const total = searching ? (search.data?.totalElements ?? 0) : visible.length
+  const loading = searching ? search.isPending : watchedSymbols.length > 0 && watched.isPending
 
   return (
     <Panel
       className="workspace__watch"
-      title={title}
-      meta={<span className="panel__count numeric">{visible.length}</span>}
+      title={searching ? '검색 결과' : '관심종목'}
+      meta={<span className="panel__count numeric">{total.toLocaleString('ko-KR')}</span>}
     >
       <label className="stocklist__search">
         <span className="stocklist__search-icon" aria-hidden="true">
@@ -79,11 +94,23 @@ export function StockSearch({ stocks, onSelect, selectedSymbol, isPending }: Pro
         <span>현재가 · 등락률</span>
       </div>
 
-      {isPending ? (
+      {search.isError && searching ? (
+        <PanelState tone="error" hint="잠시 후 다시 검색해 주세요.">
+          종목을 찾지 못했습니다.
+        </PanelState>
+      ) : loading ? (
         <PanelState tone="loading">종목을 불러오는 중…</PanelState>
       ) : visible.length === 0 ? (
-        <PanelState hint={searching ? '종목명이나 코드를 확인해 주세요.' : undefined}>
-          {searching ? '검색 결과가 없습니다.' : '표시할 종목이 없습니다.'}
+        <PanelState
+          hint={
+            searching
+              ? '종목명이나 코드를 확인해 주세요.'
+              : session
+                ? '종목을 검색하고 ☆ 를 누르면 관심종목에 담깁니다.'
+                : undefined
+          }
+        >
+          {searching ? '검색 결과가 없습니다.' : '종목명이나 종목코드로 검색해 보세요.'}
         </PanelState>
       ) : (
         <ul className="stocklist__rows">
@@ -121,11 +148,21 @@ export function StockSearch({ stocks, onSelect, selectedSymbol, isPending }: Pro
         </ul>
       )}
 
-      {showingAll && session && (
+      {searching && total > visible.length && (
         <p className="book__hint">
-          관심종목을 추가해 보세요. 종목 옆의 ☆ 를 누르면 등록됩니다.
+          {total.toLocaleString('ko-KR')}개 중 {visible.length}개를 보여줍니다. 검색어를 더 입력해 좁혀 보세요.
         </p>
       )}
     </Panel>
   )
+}
+
+/** 값이 delay 동안 바뀌지 않으면 그 값을 돌려준다. */
+function useDebounced<T>(value: T, delay: number): T {
+  const [settled, setSettled] = useState(value)
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(value), delay)
+    return () => clearTimeout(timer)
+  }, [value, delay])
+  return settled
 }

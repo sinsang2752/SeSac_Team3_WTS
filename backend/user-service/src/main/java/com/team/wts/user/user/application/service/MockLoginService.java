@@ -18,7 +18,7 @@ import com.team.wts.user.user.domain.UserRepository;
  * Mock 로그인. (CLAUDE.md §6.4 – 인증 우선순위 1순위, §24)
  *
  * <p>비밀번호가 없다. 이메일만으로 사용자를 찾거나 만들고 토큰을 발급한다.
- * 실제 인증은 Phase 8에서 Amazon Cognito로 교체한다 (§48).
+ * 실제 인증은 공개 배포 직전(Phase 11)에 Amazon Cognito로 교체한다 (§62.4).
  */
 @Service
 public class MockLoginService {

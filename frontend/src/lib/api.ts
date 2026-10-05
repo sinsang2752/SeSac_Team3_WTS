@@ -10,6 +10,7 @@ import type {
   Portfolio,
   Position,
   Stock,
+  StockPage,
   WatchlistItem,
 } from './types'
 
@@ -84,9 +85,38 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 // ── 시세 (인증 불필요) ────────────────────────────────────────
 
-export function fetchStocks(keyword?: string): Promise<Stock[]> {
-  const query = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
-  return request<Stock[]>(`/api/market/stocks${query}`)
+/** 종목 검색. 한 페이지씩 받는다 (CLAUDE.md §57.1). */
+export function fetchStocks(params: { keyword?: string; page?: number; size?: number }): Promise<StockPage> {
+  const query = new URLSearchParams()
+  if (params.keyword) query.set('keyword', params.keyword)
+  if (params.page !== undefined) query.set('page', String(params.page))
+  if (params.size !== undefined) query.set('size', String(params.size))
+  const suffix = query.size > 0 ? `?${query}` : ''
+  return request<StockPage>(`/api/market/stocks${suffix}`)
+}
+
+/** 서버가 한 번에 받는 종목코드 수 */
+const SYMBOLS_PER_REQUEST = 100
+
+/**
+ * 종목코드 여러 개를 한 번에. 주문 · 체결 · 보유 종목의 이름을 그릴 때 쓴다.
+ * 상장폐지 종목도 온다. 없는 종목코드는 빠진다.
+ */
+export async function fetchStocksBySymbols(symbols: readonly string[]): Promise<Stock[]> {
+  const chunks: string[][] = []
+  for (let i = 0; i < symbols.length; i += SYMBOLS_PER_REQUEST) {
+    chunks.push(symbols.slice(i, i + SYMBOLS_PER_REQUEST))
+  }
+  const pages = await Promise.all(
+    chunks.map((chunk) =>
+      request<StockPage>(`/api/market/stocks?symbols=${encodeURIComponent(chunk.join(','))}`),
+    ),
+  )
+  return pages.flatMap((page) => page.items)
+}
+
+export function fetchStock(symbol: string): Promise<Stock> {
+  return request<Stock>(`/api/market/stocks/${encodeURIComponent(symbol)}`)
 }
 
 export function fetchCandles(symbol: string, limit = 120): Promise<Candle[]> {

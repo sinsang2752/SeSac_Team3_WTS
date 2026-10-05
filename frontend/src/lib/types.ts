@@ -1,9 +1,23 @@
 /** 백엔드 계약 (CLAUDE.md §24, §25). 금액은 숫자로 내려온다. */
 
+/** 종목 마스터 (CLAUDE.md §57.1). 종목코드에는 영문 대문자가 섞일 수 있다 (예: 0001A0). */
 export interface Stock {
   symbol: string
+  standardCode: string
   name: string
-  market: string
+  market: 'KOSPI' | 'KOSDAQ'
+  /** 기준가. 신규 상장 직후처럼 모르면 null */
+  basePrice: number | null
+  /** 거래정지 · 상장폐지면 false */
+  tradable: boolean
+}
+
+/** 종목 목록 한 페이지. 전체를 한 번에 받지 않는다 (§57.3). */
+export interface StockPage {
+  items: Stock[]
+  page: number
+  size: number
+  totalElements: number
 }
 
 /**

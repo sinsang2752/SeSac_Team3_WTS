@@ -112,7 +112,7 @@ CHECK (reserved_cash <= cash_balance)
 | 관심종목 API (§24) | Phase 5 (WTS MVP) |
 | `ledger_entries` / `INITIAL_DEPOSIT` | Phase 4 (Execution + Ledger) |
 | `user.created` Kafka 이벤트 | Phase 4 (ADR-0005) |
-| Spring Security | Phase 8 (Cognito 연동 시) |
+| Spring Security | Phase 11 (Cognito 연동 시, CLAUDE.md §62.4) |
 | 프론트엔드 로그인 화면 | Phase 5 (§26 `/login`) |
 | 거래 도메인 에러 코드 (§39) | Phase 3 (주문 로직과 함께) |
 

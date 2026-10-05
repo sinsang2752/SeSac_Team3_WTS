@@ -24,6 +24,8 @@ class WatchlistItemTest {
     @DisplayName("형식 검사는 예외 없이도 물어볼 수 있다")
     void exposesValidationWithoutThrowing() {
         assertThat(WatchlistItem.isValidSymbol("000660")).isTrue();
+        // 2024년부터 영문이 섞인 종목코드가 상장된다.
+        assertThat(WatchlistItem.isValidSymbol("0001A0")).isTrue();
         assertThat(WatchlistItem.isValidSymbol("abc")).isFalse();
         assertThat(WatchlistItem.isValidSymbol(null)).isFalse();
     }

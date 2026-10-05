@@ -2150,6 +2150,7 @@ KIS 실시간 WebSocket은 세션 하나당 등록 건수에 상한이 있다. �
 | 호가단위 | `KrxTickSize`가 market-service에만 있고 Mock 가격에만 쓰인다. 주석과 달리 지정가 검증에는 안 쓰인다 | common으로 옮겨 지정가 검증에 쓴다 (§59) |
 | 미체결 조회 | `orders(symbol, status, order_type)` 인덱스 없음 | 인덱스 추가. 엔진이 틱마다 조회한다 |
 | 없는 종목 주문 | `MARKET_PRICE_UNAVAILABLE`로 뭉뚱그린다 | `SYMBOL_NOT_FOUND`로 구분한다 |
+| 종목코드 형식 | 숫자 6자리(`\d{6}`)만 받는다. 영문이 섞인 85개 종목은 주문 · 관심종목이 막힌다 | `[0-9A-Z]{6}` (8-1에서 반영) |
 
 유지하는 결정:
 
@@ -2214,11 +2215,12 @@ market DB의 `stocks` 테이블이 market-service 안에서 종목 마스터의 
 
 ```text
 stocks
-symbol          CHAR(6)       PK, 단축코드
-standard_code   CHAR(12)      표준코드 (ISIN)
+symbol          VARCHAR(20)   PK, 단축코드. 영문 대문자가 섞일 수 있다 (0001A0, 00088K)
+standard_code   VARCHAR(12)   표준코드 (ISIN)
 name            VARCHAR       한글 종목명
 market          VARCHAR       KOSPI | KOSDAQ
-base_price      DECIMAL       기준가. 가격제한폭과 Mock 출발 가격의 기준
+base_price      DECIMAL       기준가. 가격제한폭과 Mock 출발 가격의 기준. 파일에 0이면 NULL
+market_cap      BIGINT        전일 기준 시가총액(억원). 검색 정렬용
 trading_halted  BOOLEAN       거래정지
 listed          BOOLEAN       파일에서 사라지면 false. 행은 지우지 않는다 (주문·포지션이 참조한다)
 synced_at       TIMESTAMP     UTC
@@ -2236,7 +2238,8 @@ synced_at       TIMESTAMP     UTC
 오프라인 · Mock · 테스트:
 
 ```text
-- 마스터 파일에서 만든 스냅샷 CSV를 저장소에 함께 둔다. 다시 만드는 스크립트도 둔다.
+- KIS 원본 zip을 그대로 스냅샷으로 저장소에 둔다 (market-service resources/master/, ADR-0014).
+  다운로드와 같은 파서를 탄다. 갱신은 ./infra/scripts/update-stock-master-snapshot.sh
 - market.provider=mock 이거나 내려받을 수 없으면 스냅샷으로 채운다.
 - 테스트는 스냅샷 일부만 담은 고정 픽스처를 쓴다. 네트워크에 의존하지 않는다.
 ```
@@ -2252,6 +2255,9 @@ GET /api/market/stocks?keyword=&market=&page=0&size=20
 ```
 
 `StockRepository` 포트는 그대로 두고 구현만 설정 → DB로 바꾼다. 설정의 `market.stocks`는 지운다.
+
+파일 레이아웃 · 오프셋 · 영문 종목코드 등 구현하며 확인한 사실은 ADR-0014에 있다.
+종목코드 형식은 `common`의 `StockSymbol`(`[0-9A-Z]{6}`)이 서비스 공통 규칙이다.
 
 ## 57.2 계층형 구독 – Subscription Manager (§21 대체)
 
@@ -2591,10 +2597,12 @@ API 명세(`docs/api/openapi.yaml`, `api-spec.md/.xlsx/.pdf`)는 생성물이다
 
 ### Phase 8-1 – 종목 마스터
 
+> **완료 (2026-10-06).** ADR-0014, ADR-0018.
+
 - `stocks` 테이블 · 마스터 파일 파서 · 동기화 작업 · 스냅샷 CSV와 생성 스크립트
 - `StockRepository`를 DB 구현으로 교체하고 설정 `market.stocks`를 지운다
 - 검색 API 페이지화, 종목 상세 필드 추가, 프론트 종목 검색 · 목록 수정
-- §62 반영: `KIS_ENVIRONMENT=real` 기동 차단, `KIS_ACCOUNT_NO` 제거, "Phase 8에서 Cognito" 표기 9곳 정정 (§48), 화면 모의투자 표시 (§62.5)
+- §62 반영: `KIS_ENVIRONMENT=real` 기동 차단, `KIS_ACCOUNT_NO` 제거, "Phase 8에서 Cognito" 표기 9곳 정정 (§48). 화면 모의투자 표시(§62.5)는 로고에 이미 있다 (`LearnstockLogo`)
 
 완료조건:
 

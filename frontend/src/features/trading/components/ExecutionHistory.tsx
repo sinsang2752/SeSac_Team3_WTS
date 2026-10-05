@@ -6,7 +6,7 @@ import {
   formatQuantity,
   formatSeoulDateTime,
 } from '../../../lib/format'
-import { useStockName } from '../../market/useStockName'
+import { useStockNames } from '../../market/useStockNames'
 import { useExecutions } from '../useTradingQueries'
 
 /**
@@ -17,7 +17,7 @@ import { useExecutions } from '../useTradingQueries'
  */
 export function ExecutionHistory() {
   const { data: executions, isPending, isError } = useExecutions()
-  const nameOf = useStockName()
+  const nameOf = useStockNames((executions ?? []).map((item) => item.symbol))
 
   if (isPending) return <PanelState tone="loading">불러오는 중…</PanelState>
   if (isError) {

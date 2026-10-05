@@ -7,7 +7,7 @@ import type { MockLoginResult } from '../lib/types'
  *
  * <p>토큰을 localStorage에 둔다. 새로고침으로 로그인이 풀리면 주문 화면을 쓸 수 없기 때문이다.
  * XSS가 있으면 토큰이 새어 나가는 저장 위치이지만, MVP의 Mock 토큰은 가상 계좌에만 접근
- * 가능하고 실제 자산과 무관하다. 실제 인증(Cognito)으로 바꿀 때 다시 볼 자리다 (§47 Phase 8).
+ * 가능하고 실제 자산과 무관하다. 실제 인증(Cognito)으로 바꿀 때 다시 볼 자리다 (Phase 11, CLAUDE.md §62.4).
  */
 export interface Session {
   userId: string

@@ -6,7 +6,7 @@ import { PanelState } from '../../../components/PanelState'
 import { ApiRequestError } from '../../../lib/api'
 import { formatPrice, formatQuantity, formatSeoulDateTime, formatWon } from '../../../lib/format'
 import type { Order } from '../../../lib/types'
-import { useStockName } from '../../market/useStockName'
+import { useStockNames } from '../../market/useStockNames'
 import { useToastStore } from '../../../stores/toastStore'
 import { useCancelOrder, useOpenOrders, useRefreshTrading } from '../useTradingQueries'
 import { OrderStatusBadge } from './OrderStatusBadge'
@@ -25,7 +25,7 @@ export function OpenOrders() {
   const cancel = useCancelOrder()
   const refresh = useRefreshTrading()
   const pushToast = useToastStore((state) => state.push)
-  const nameOf = useStockName()
+  const nameOf = useStockNames((orders ?? []).map((item) => item.symbol))
   const [target, setTarget] = useState<Order | null>(null)
 
   if (isPending) return <PanelState tone="loading">불러오는 중…</PanelState>

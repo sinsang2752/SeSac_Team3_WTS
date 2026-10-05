@@ -42,4 +42,12 @@ class PlaceOrderRequestTest {
 
         assertThat(validator.validate(request)).isEmpty();
     }
+
+    @Test
+    @DisplayName("영문이 섞인 종목코드도 받는다 (2024년 이후 상장 종목)")
+    void acceptsAlphanumericSymbol() {
+        var request = new PlaceOrderRequest("0001A0", OrderSide.BUY, OrderType.MARKET, 1, null);
+
+        assertThat(validator.validate(request)).isEmpty();
+    }
 }

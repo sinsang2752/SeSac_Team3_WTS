@@ -9,6 +9,7 @@ interface WebSocketState {
   connect: () => void
   disconnect: () => void
   subscribe: (symbols: string[]) => void
+  unsubscribe: (symbols: string[]) => void
 }
 
 /**
@@ -34,4 +35,6 @@ export const useWebSocketStore = create<WebSocketState>((set) => ({
   disconnect: () => socket?.disconnect(),
 
   subscribe: (symbols) => socket?.subscribe(symbols),
+
+  unsubscribe: (symbols) => socket?.unsubscribe(symbols),
 }))

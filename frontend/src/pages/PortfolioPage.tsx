@@ -13,7 +13,7 @@ import {
   formatWon,
 } from '../lib/format'
 import { usePortfolio } from '../features/portfolio/usePortfolio'
-import { useStockName } from '../features/market/useStockName'
+import { useStockNames } from '../features/market/useStockNames'
 
 /** 용어 도움말. 처음 보는 사람이 막히는 단어에만 붙인다. */
 function Hint({ text }: { text: string }) {
@@ -35,7 +35,7 @@ function Hint({ text }: { text: string }) {
  */
 export function PortfolioPage() {
   const { data: portfolio, isPending, isError } = usePortfolio()
-  const nameOf = useStockName()
+  const nameOf = useStockNames((portfolio?.positions ?? []).map((item) => item.symbol))
 
   if (isPending) {
     return (

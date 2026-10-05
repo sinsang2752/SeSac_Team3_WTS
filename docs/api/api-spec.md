@@ -51,7 +51,7 @@
 | `UNAUTHORIZED` | 401 | 인증이 필요합니다. | 2, 3, 4, 5, 11, 12, 13, 14, 15, 16, 17, 18 |
 | `USER_NOT_FOUND` | 404 | 사용자를 찾을 수 없습니다. | 2 |
 | `ACCOUNT_NOT_FOUND` | 404 | 계좌를 찾을 수 없습니다. | — |
-| `VALIDATION_FAILED` | 400 | 요청 값이 올바르지 않습니다. | 1, 4, 10, 12, 13, 14, 15 |
+| `VALIDATION_FAILED` | 400 | 요청 값이 올바르지 않습니다. | 1, 4, 6, 10, 12, 13, 14, 15 |
 | `SYMBOL_NOT_FOUND` | 404 | 종목을 찾을 수 없습니다. | 7, 8, 9, 10 |
 | `MARKET_PRICE_UNAVAILABLE` | 503 | 현재가를 조회할 수 없습니다. | 8, 9, 12 |
 | `MARKET_PRICE_STALE` | 503 | 현재가가 오래되어 주문을 처리할 수 없습니다. | 12 |
@@ -287,31 +287,56 @@
 
 `GET /api/market/stocks` · 인증 불필요
 
-keyword를 주면 종목코드 또는 종목명 부분일치로 검색한다. 생략하면 전체 목록이다.
+KOSPI · KOSDAQ 상장 주권을 페이지로 돌려준다. keyword를 주면 종목코드 또는 종목명 부분일치로 검색한다(종목코드 일치 → 종목코드로 시작 → 이름으로 시작 순). symbols를 주면 그 종목만 돌려주고 다른 조건은 무시한다. 이 경우 상장폐지 종목도 포함된다(보유 종목 이름 표시용).
 
 **요청**
 
 | 이름 | 위치 | 타입 | 필수 | 설명 | 예시 |
 |---|---|---|---|---|---|
-| `keyword` | query | string |  | 종목코드 또는 종목명 일부. 생략하면 전체 | `삼성` |
+| `keyword` | query | string |  | 종목코드 또는 종목명 일부. 생략하면 전체 (이름순) | `삼성` |
+| `market` | query | enum (KOSPI / KOSDAQ) |  | 시장. 생략하면 전체 |  |
+| `symbols` | query | array&lt;string&gt; |  | 쉼표로 구분한 종목코드. 최대 100개 | `005930,000660` |
+| `page` | query | integer |  | 페이지 번호 (0부터) (기본값 0) | `0` |
+| `size` | query | integer |  | 페이지 크기. 1 ~ 100 (기본값 20) | `20` |
 
-**응답** — 200 OK · StockResponse 배열
+**응답** — 200 OK · StockPageResponse
 
 | 필드 | 타입 | 설명 | 예시 |
 |---|---|---|---|
-| `symbol` | string | 종목코드 (6자리) | `005930` |
-| `name` | string | 종목명 | `삼성전자` |
-| `market` | string | 시장 구분 | `KOSPI` |
+| `items` | array&lt;object&gt; | 이 페이지의 종목 |  |
+| `items[].symbol` | string | 종목코드 (영문 대문자·숫자 6자리) | `005930` |
+| `items[].standardCode` | string | 표준코드 (ISIN) | `KR7005930003` |
+| `items[].name` | string | 종목명 | `삼성전자` |
+| `items[].market` | enum (KOSPI / KOSDAQ) | 시장 구분 | `KOSPI` |
+| `items[].basePrice` | number | 기준가 (원). 가격제한폭의 기준이다. 신규 상장 직후처럼 모르면 null | `276000` |
+| `items[].tradable` | boolean | 주문을 받을 수 있는가. 거래정지 · 상장폐지면 false | `true` |
+| `page` | integer | 페이지 번호 (0부터) | `0` |
+| `size` | integer | 페이지 크기 | `20` |
+| `totalElements` | integer | 조건에 맞는 전체 종목 수 | `2719` |
 
 ```json
-[
-  {
-    "symbol": "005930",
-    "name": "삼성전자",
-    "market": "KOSPI"
-  }
-]
+{
+  "items": [
+    {
+      "symbol": "005930",
+      "standardCode": "KR7005930003",
+      "name": "삼성전자",
+      "market": "KOSPI",
+      "basePrice": 276000,
+      "tradable": true
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 2719
+}
 ```
+
+**에러**
+
+| HTTP | 코드 | 설명 |
+|---|---|---|
+| 400 | `VALIDATION_FAILED` | 요청 값이 올바르지 않습니다. |
 
 <a id="api-7"></a>
 
@@ -319,27 +344,33 @@ keyword를 주면 종목코드 또는 종목명 부분일치로 검색한다. �
 
 `GET /api/market/stocks/{symbol}` · 인증 불필요
 
-종목코드로 종목 하나를 조회한다.
+종목코드로 종목 하나를 조회한다. 상장폐지 종목도 돌려준다(tradable=false).
 
 **요청**
 
 | 이름 | 위치 | 타입 | 필수 | 설명 | 예시 |
 |---|---|---|---|---|---|
-| `symbol` | path | string | O | 종목코드 (6자리) | `005930` |
+| `symbol` | path | string | O | 종목코드 (영문 대문자·숫자 6자리) | `005930` |
 
 **응답** — 200 OK · StockResponse
 
 | 필드 | 타입 | 설명 | 예시 |
 |---|---|---|---|
-| `symbol` | string | 종목코드 (6자리) | `005930` |
+| `symbol` | string | 종목코드 (영문 대문자·숫자 6자리) | `005930` |
+| `standardCode` | string | 표준코드 (ISIN) | `KR7005930003` |
 | `name` | string | 종목명 | `삼성전자` |
-| `market` | string | 시장 구분 | `KOSPI` |
+| `market` | enum (KOSPI / KOSDAQ) | 시장 구분 | `KOSPI` |
+| `basePrice` | number | 기준가 (원). 가격제한폭의 기준이다. 신규 상장 직후처럼 모르면 null | `276000` |
+| `tradable` | boolean | 주문을 받을 수 있는가. 거래정지 · 상장폐지면 false | `true` |
 
 ```json
 {
   "symbol": "005930",
+  "standardCode": "KR7005930003",
   "name": "삼성전자",
-  "market": "KOSPI"
+  "market": "KOSPI",
+  "basePrice": 276000,
+  "tradable": true
 }
 ```
 
@@ -566,7 +597,7 @@ keyword를 주면 종목코드 또는 종목명 부분일치로 검색한다. �
 |---|---|---|---|---|---|
 | `Authorization` | header | string | O | Bearer {accessToken} — mock-login 이 발급한 토큰 |  |
 | `Idempotency-Key` | header | string | O | 주문마다 새로 만든 고유 키 (UUID 권장, 1~64자). 같은 키 재요청은 기존 주문을 돌려준다 | `550e8400-e29b-41d4-a716-446655440000` |
-| `symbol` | body | string | O | 종목코드. 6자리 숫자 | `005930` |
+| `symbol` | body | string | O | 종목코드. 영문 대문자·숫자 6자리 | `005930` |
 | `side` | body | enum (BUY / SELL) | O | BUY 매수 / SELL 매도 | `BUY` |
 | `orderType` | body | enum (MARKET / LIMIT) | O | MARKET 시장가 / LIMIT 지정가 | `LIMIT` |
 | `quantity` | body | integer | O | 주문 수량 (주). 1 ~ 1,000,000 | `10` |
