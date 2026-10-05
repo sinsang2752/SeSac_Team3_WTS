@@ -24,210 +24,125 @@ servers:
   description: Gateway
 security:
 - bearerAuth: []
+tags:
+- name: 관심종목
+  description: 사용자별 관심종목
+- name: 사용자
+  description: 모의 로그인과 내 정보
+- name: 시세
+  description: 현재가와 호가. 인증 불필요
+- name: 종목
+  description: 종목 마스터 조회와 검색. 인증 불필요
+- name: 차트
+  description: 분봉 조회. 인증 불필요
+- name: 보유종목
+  description: 종목별 보유 수량과 평균단가
+- name: 체결
+  description: 체결 내역
+- name: 계좌
+  description: 가상 계좌
+- name: 포트폴리오
+  description: 현재가 기준 평가
+- name: 주문
+  description: 주문 접수·조회·취소
 paths:
   /api/market/stocks:
     get:
       tags:
-      - stock-controller
+      - 종목
+      summary: 종목 목록·검색
+      description: keyword를 주면 종목코드 또는 종목명 부분일치로 검색한다. 생략하면 전체 목록이다.
       operationId: list
       parameters:
       - name: keyword
         in: query
+        description: 종목코드 또는 종목명 일부. 생략하면 전체
         required: false
         schema:
           type: string
+        example: 삼성
       responses:
         '200':
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/StockResponse'
-        '400':
-          description: 'Bad Request
-
-
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: 'Unauthorized
-
-
-            - `UNAUTHORIZED` — 인증이 필요합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: 'Not Found
-
-
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+      x-error-codes: []
   /api/market/stocks/{symbol}:
     get:
       tags:
-      - stock-controller
+      - 종목
+      summary: 종목 상세
+      description: 종목코드로 종목 하나를 조회한다.
       operationId: detail
       parameters:
       - name: symbol
         in: path
+        description: 종목코드 (6자리)
         required: true
         schema:
           type: string
+        example: 005930
       responses:
         '200':
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/StockResponse'
-        '400':
-          description: 'Bad Request
-
-
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: 'Unauthorized
-
-
-            - `UNAUTHORIZED` — 인증이 필요합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: 'Not Found
 
 
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+      x-error-codes:
+      - SYMBOL_NOT_FOUND
   /api/market/stocks/{symbol}/candles:
     get:
       tags:
-      - candle-controller
+      - 차트
+      summary: 분봉 조회
+      description: 최근 분봉을 openTime 오름차순으로 돌려준다. 마지막 원소는 아직 확정되지 않은 현재 봉일 수 있다. 현재 1분봉만 지원한다.
       operationId: candles
       parameters:
       - name: symbol
         in: path
+        description: 종목코드 (6자리)
         required: true
         schema:
           type: string
+        example: 005930
       - name: interval
         in: query
+        description: 봉 주기. 현재 1m만 지원
         required: false
         schema:
           type: string
           default: 1m
+        example: 1m
       - name: limit
         in: query
+        description: 최근 몇 개를 받을지. 1 ~ 1000
         required: false
         schema:
           type: integer
           format: int32
           default: 120
+        example: 120
       responses:
         '200':
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 type: array
                 items:
@@ -236,20 +151,7 @@ paths:
           description: 'Bad Request
 
 
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: 'Unauthorized
-
-
-            - `UNAUTHORIZED` — 인증이 필요합니다.'
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.'
           content:
             application/json:
               schema:
@@ -258,119 +160,42 @@ paths:
           description: 'Not Found
 
 
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+      x-error-codes:
+      - VALIDATION_FAILED
+      - SYMBOL_NOT_FOUND
   /api/market/stocks/{symbol}/orderbook:
     get:
       tags:
-      - quote-controller
+      - 시세
+      summary: 호가 조회
+      description: 최신 매도·매수 호가를 돌려준다. 매도호가는 낮은 가격부터, 매수호가는 높은 가격부터 정렬한다.
       operationId: orderBook
       parameters:
       - name: symbol
         in: path
+        description: 종목코드 (6자리)
         required: true
         schema:
           type: string
+        example: 005930
       responses:
         '200':
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/OrderBookResponse'
-        '400':
-          description: 'Bad Request
-
-
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: 'Unauthorized
-
-
-            - `UNAUTHORIZED` — 인증이 필요합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: 'Not Found
 
 
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.'
           content:
             application/json:
               schema:
@@ -379,84 +204,43 @@ paths:
           description: 'Service Unavailable
 
 
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+      security: []
+      x-error-codes:
+      - SYMBOL_NOT_FOUND
+      - MARKET_PRICE_UNAVAILABLE
   /api/market/stocks/{symbol}/price:
     get:
       tags:
-      - quote-controller
+      - 시세
+      summary: 현재가 조회
+      description: 최신 현재가를 돌려준다. 필드 구성은 WebSocket PRICE 메시지와 같다. 실시간 갱신이 필요하면 WebSocket(/ws/market)을 구독한다.
+        아직 시세가 한 번도 들어오지 않았으면 503이다.
       operationId: price
       parameters:
       - name: symbol
         in: path
+        description: 종목코드 (6자리)
         required: true
         schema:
           type: string
+        example: 005930
       responses:
         '200':
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/PriceResponse'
-        '400':
-          description: 'Bad Request
-
-
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: 'Unauthorized
-
-
-            - `UNAUTHORIZED` — 인증이 필요합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: 'Not Found
 
 
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
+            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.'
           content:
             application/json:
               schema:
@@ -465,38 +249,29 @@ paths:
           description: 'Service Unavailable
 
 
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
+            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+      security: []
+      x-error-codes:
+      - SYMBOL_NOT_FOUND
+      - MARKET_PRICE_UNAVAILABLE
   /api/trading/account:
     get:
       tags:
-      - account-controller
+      - 계좌
+      summary: 계좌 조회
+      description: 예수금·예약금·주문 가능 금액을 돌려준다. 계좌가 없으면 초기 가상자금(기본 1억원)으로 개설한다.
       operationId: account
       responses:
         '200':
           description: OK
           content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/AccountResponse'
-        '400':
-          description: 'Bad Request
-
-
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
-          content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/AccountResponse'
         '401':
           description: 'Unauthorized
 
@@ -506,79 +281,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: 'Not Found
-
-
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      x-error-codes:
+      - UNAUTHORIZED
   /api/trading/executions:
     get:
       tags:
-      - execution-controller
+      - 체결
+      summary: 체결 내역 조회
+      description: 최신순으로 돌려준다. 주문의 filledQuantity만으로는 얼마에 체결됐는지 알 수 없다. 체결가는 여기에만 있다.
       operationId: executions
       responses:
         '200':
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/ExecutionResponse'
-        '400':
-          description: 'Bad Request
-
-
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: 'Unauthorized
 
@@ -588,60 +308,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: 'Not Found
-
-
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      x-error-codes:
+      - UNAUTHORIZED
   /api/trading/orders:
     get:
       tags:
-      - order-controller
+      - 주문
+      summary: 주문 목록
+      description: 최근 주문부터 돌려준다. status=ACCEPTED로 미체결 주문만 볼 수 있다.
       operationId: list
       parameters:
       - name: status
         in: query
+        description: 주문 상태로 거르기. ACCEPTED면 미체결만. 생략하면 전체
         required: false
         schema:
           type: string
@@ -656,7 +335,7 @@ paths:
         '200':
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 type: array
                 items:
@@ -665,11 +344,7 @@ paths:
           description: 'Bad Request
 
 
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.'
           content:
             application/json:
               schema:
@@ -683,62 +358,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: 'Not Found
-
-
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      x-error-codes:
+      - UNAUTHORIZED
+      - VALIDATION_FAILED
     post:
       tags:
-      - order-controller
+      - 주문
+      summary: 주문 접수
+      description: 시장가(MARKET)는 최신 현재가로 즉시 전량 체결되어 FILLED로 돌아온다. 지정가(LIMIT)는 BUY면 현재가 ≤ 지정가, SELL이면 현재가
+        ≥ 지정가일 때 즉시 체결되고, 아니면 ACCEPTED로 남아 시세가 조건에 도달하면 자동 체결된다. 체결가는 지정가가 아니라 체결 시점 현재가다. 거절되면 에러 응답이
+        오고, 거절된 주문도 REJECTED로 주문 내역에 남는다. 같은 Idempotency-Key로 같은 내용을 다시 보내면 주문을 새로 만들지 않고 기존 주문을 그대로 201로
+        돌려준다.
       operationId: place
       parameters:
       - name: Idempotency-Key
         in: header
+        description: 주문마다 새로 만든 고유 키 (UUID 권장, 1~64자). 같은 키 재요청은 기존 주문을 돌려준다
         required: true
         schema:
           type: string
+        example: 550e8400-e29b-41d4-a716-446655440000
       requestBody:
         content:
           application/json:
@@ -749,7 +388,7 @@ paths:
         '201':
           description: Created
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/OrderResponse'
         '400':
@@ -774,37 +413,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: 'Not Found
-
-
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '409':
           description: 'Conflict
 
 
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
             - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
           content:
             application/json:
               schema:
@@ -820,34 +433,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+      x-error-codes:
+      - UNAUTHORIZED
+      - VALIDATION_FAILED
+      - MARKET_PRICE_UNAVAILABLE
+      - MARKET_PRICE_STALE
+      - INSUFFICIENT_BALANCE
+      - INSUFFICIENT_POSITION
+      - DUPLICATE_ORDER_REQUEST
   /api/trading/orders/{orderId}:
     get:
       tags:
-      - order-controller
+      - 주문
+      summary: 주문 상세
+      description: 주문 하나를 조회한다. 내 주문이 아니면 404다.
       operationId: one
       parameters:
       - name: orderId
         in: path
+        description: 주문 ID
         required: true
         schema:
           type: integer
           format: int64
+        example: 2
       responses:
         '200':
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/OrderResponse'
         '400':
           description: 'Bad Request
 
 
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.'
           content:
             application/json:
               schema:
@@ -865,75 +486,43 @@ paths:
           description: 'Not Found
 
 
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
             - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      x-error-codes:
+      - UNAUTHORIZED
+      - VALIDATION_FAILED
+      - ORDER_NOT_FOUND
     delete:
       tags:
-      - order-controller
+      - 주문
+      summary: 주문 취소
+      description: 미체결(ACCEPTED) 주문을 취소하고 묶인 예수금·수량을 푼다. 취소된 주문(status=CANCELLED)을 돌려준다. 이미 FILLED / CANCELLED
+        / REJECTED인 주문은 409다.
       operationId: cancel
       parameters:
       - name: orderId
         in: path
+        description: 주문 ID
         required: true
         schema:
           type: integer
           format: int64
+        example: 2
       responses:
         '200':
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/OrderResponse'
         '400':
           description: 'Bad Request
 
 
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.'
           content:
             application/json:
               schema:
@@ -951,12 +540,6 @@ paths:
           description: 'Not Found
 
 
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
             - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
           content:
             application/json:
@@ -966,58 +549,30 @@ paths:
           description: 'Conflict
 
 
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
+            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      x-error-codes:
+      - UNAUTHORIZED
+      - VALIDATION_FAILED
+      - INVALID_ORDER_STATE
+      - ORDER_NOT_FOUND
   /api/trading/portfolio:
     get:
       tags:
-      - portfolio-controller
+      - 포트폴리오
+      summary: 포트폴리오 조회
+      description: 보유 종목을 현재가로 평가한 한 시점의 스냅샷이다. 평가손익(아직 팔지 않은 이익)과 실현손익(이미 판 이익)을 함께 준다.
       operationId: portfolio
       responses:
         '200':
           description: OK
           content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/PortfolioResponse'
-        '400':
-          description: 'Bad Request
-
-
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
-          content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/PortfolioResponse'
         '401':
           description: 'Unauthorized
 
@@ -1027,79 +582,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: 'Not Found
-
-
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      x-error-codes:
+      - UNAUTHORIZED
   /api/trading/positions:
     get:
       tags:
-      - position-controller
+      - 보유종목
+      summary: 보유종목 조회
+      description: 보유 중인 종목만 돌려준다. 전량 매도한 종목은 빠진다. 평가금액·평가손익은 포트폴리오 조회에 있다.
       operationId: positions
       responses:
         '200':
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/PositionResponse'
-        '400':
-          description: 'Bad Request
-
-
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: 'Unauthorized
 
@@ -1109,77 +609,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: 'Not Found
-
-
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      x-error-codes:
+      - UNAUTHORIZED
   /api/users/me:
     get:
       tags:
-      - user-controller
+      - 사용자
+      summary: 내 정보 조회
+      description: 토큰의 사용자 정보를 돌려준다.
       operationId: me
       responses:
         '200':
           description: OK
           content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/UserResponse'
-        '400':
-          description: 'Bad Request
-
-
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
-          content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/UserResponse'
         '401':
           description: 'Unauthorized
 
@@ -1193,75 +638,30 @@ paths:
           description: 'Not Found
 
 
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
+            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      x-error-codes:
+      - UNAUTHORIZED
+      - USER_NOT_FOUND
   /api/users/me/watchlist:
     get:
       tags:
-      - watchlist-controller
+      - 관심종목
+      summary: 관심종목 목록
+      description: 담은 순서대로 돌려준다.
       operationId: list
       responses:
         '200':
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/WatchlistItemResponse'
-        '400':
-          description: 'Bad Request
-
-
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: 'Unauthorized
 
@@ -1271,79 +671,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: 'Not Found
-
-
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      x-error-codes:
+      - UNAUTHORIZED
   /api/users/me/watchlist/{symbol}:
     post:
       tags:
-      - watchlist-controller
+      - 관심종목
+      summary: 관심종목 추가
+      description: 이미 담긴 종목이어도 성공이다(같은 요청을 여러 번 보내도 결과가 같다). 종목이 실제로 존재하는지는 확인하지 않는다. 최대 개수(기본 50개)를 넘으면
+        거절한다.
       operationId: add
       parameters:
       - name: symbol
         in: path
+        description: 종목코드 (6자리)
         required: true
         schema:
           type: string
+        example: 005930
       responses:
         '200':
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/WatchlistItemResponse'
         '400':
           description: 'Bad Request
 
 
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.'
           content:
             application/json:
               schema:
@@ -1357,78 +714,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: 'Not Found
-
-
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      x-error-codes:
+      - UNAUTHORIZED
+      - VALIDATION_FAILED
     delete:
       tags:
-      - watchlist-controller
+      - 관심종목
+      summary: 관심종목 삭제
+      description: 담겨 있지 않은 종목을 빼도 성공이다. 본문 없이 204를 돌려준다.
       operationId: remove
       parameters:
       - name: symbol
         in: path
+        description: 종목코드 (6자리)
         required: true
         schema:
           type: string
+        example: 005930
       responses:
         '204':
           description: No Content
-        '400':
-          description: 'Bad Request
-
-
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: 'Unauthorized
 
@@ -1438,56 +743,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: 'Not Found
-
-
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      x-error-codes:
+      - UNAUTHORIZED
   /api/users/mock-login:
     post:
       tags:
-      - user-controller
+      - 사용자
+      summary: 모의 로그인
+      description: 이메일로 사용자를 찾고, 없으면 만든 뒤 토큰을 발급한다. 이메일은 소문자로 정규화하므로 대소문자가 달라도 같은 사용자다. 인증 없이 호출한다.
       operationId: mockLogin
       requestBody:
         content:
@@ -1499,77 +762,21 @@ paths:
         '200':
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/MockLoginResponse'
         '400':
           description: 'Bad Request
 
 
-            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.
-
-            - `INSUFFICIENT_BALANCE` — 주문 가능한 예수금이 부족합니다.
-
-            - `INSUFFICIENT_POSITION` — 매도 가능한 수량이 부족합니다.'
+            - `VALIDATION_FAILED` — 요청 값이 올바르지 않습니다.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: 'Unauthorized
-
-
-            - `UNAUTHORIZED` — 인증이 필요합니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: 'Not Found
-
-
-            - `USER_NOT_FOUND` — 사용자를 찾을 수 없습니다.
-
-            - `ACCOUNT_NOT_FOUND` — 계좌를 찾을 수 없습니다.
-
-            - `SYMBOL_NOT_FOUND` — 종목을 찾을 수 없습니다.
-
-            - `ORDER_NOT_FOUND` — 주문을 찾을 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: 'Conflict
-
-
-            - `INVALID_ORDER_STATE` — 현재 주문 상태에서는 처리할 수 없습니다.
-
-            - `DUPLICATE_ORDER_REQUEST` — 같은 Idempotency-Key로 다른 주문을 요청했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: 'Internal Server Error
-
-
-            - `INTERNAL_ERROR` — 일시적인 오류가 발생했습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: 'Service Unavailable
-
-
-            - `MARKET_PRICE_UNAVAILABLE` — 현재가를 조회할 수 없습니다.
-
-            - `MARKET_PRICE_STALE` — 현재가가 오래되어 주문을 처리할 수 없습니다.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+      x-error-codes:
+      - VALIDATION_FAILED
 components:
   schemas:
     AccountResponse:
@@ -1578,84 +785,140 @@ components:
         accountId:
           type: integer
           format: int64
+          description: 가상 계좌 ID
+          example: 1
         userId:
           type: string
+          description: 사용자 ID (UUID)
+          example: 59407a60-bc3b-4a55-a452-72d0bcd72142
         cashBalance:
           type: number
+          description: 예수금 (원). 미체결 주문의 예약금이 빠지지 않은 값이다
+          example: 99197000
         reservedCash:
           type: number
+          description: 미체결 매수 주문이 묶어둔 금액 (원)
+          example: 645000
         availableCash:
           type: number
+          description: 주문 가능 금액 (원) = cashBalance - reservedCash
+          example: 98552000
         updatedAt:
           type: string
           format: date-time
+          description: 마지막 변경 시각 (UTC)
+          example: '2026-09-22T08:12:44.101Z'
     CandleResponse:
       type: object
       properties:
         openTime:
           type: string
           format: date-time
+          description: 봉 시작 시각 (UTC). 해당 분의 0초
+          example: '2026-09-22T00:01:00Z'
         open:
           type: number
+          description: 시가 (원)
+          example: 80300
         high:
           type: number
+          description: 고가 (원)
+          example: 80500
         low:
           type: number
+          description: 저가 (원)
+          example: 79000
         close:
           type: number
+          description: 종가 (원)
+          example: 79800
         volume:
           type: integer
           format: int64
+          description: 해당 1분 동안의 거래량 (주)
+          example: 158222
     ErrorResponse:
       properties:
         code:
           type: string
+          description: 에러 코드
+          example: INSUFFICIENT_BALANCE
         message:
           type: string
+          description: 사람이 읽을 수 있는 메시지
+          example: 주문 가능한 예수금이 부족합니다.
         traceId:
           type: string
+          description: 추적 ID. 응답 헤더 X-Trace-Id와 같다
+          example: effc7d36-ebd7-46ae-9ad8-9ea215d500b5
         timestamp:
           type: string
           format: date-time
+          description: 발생 시각 (UTC)
+          example: '2026-09-22T08:12:44.101Z'
     ExecutionResponse:
       type: object
       properties:
         executionId:
           type: integer
           format: int64
+          description: 체결 ID
+          example: 12
         orderId:
           type: integer
           format: int64
+          description: 주문 ID
+          example: 8
         symbol:
           type: string
+          description: 종목코드
+          example: 005930
         side:
           type: string
+          description: BUY 매수 / SELL 매도
           enum:
           - BUY
           - SELL
+          example: SELL
         price:
           type: number
+          description: 체결가 (원). 지정가 주문도 지정가가 아니라 체결 시점 현재가다
+          example: 91000
         quantity:
           type: integer
           format: int64
+          description: 체결 수량 (주)
+          example: 4
         amount:
           type: number
+          description: 체결 대금 (원) = price × quantity. 수수료 미포함
+          example: 364000
         fee:
           type: number
+          description: 수수료 + 세금 (원). MVP는 0
+          example: 0
         realizedProfit:
           type: number
+          description: 실현손익 (원) = (체결가 - 체결 시점 평균단가) × 수량. 매도 체결에만 있다
+          example: 44000
         executedAt:
           type: string
           format: date-time
+          description: 체결 시각 (UTC)
+          example: '2026-09-22T08:12:44.101Z'
     MockLoginRequest:
       type: object
       properties:
         email:
           type: string
+          description: 이메일. 소문자로 정규화한다. 최대 255자
+          example: demo@wts.local
           maxLength: 255
           minLength: 0
         nickname:
           type: string
+          description: 닉네임. 선택, 최대 50자. 비우면 이메일 앞부분을 쓴다. 기존 사용자의 닉네임은 바뀌지 않는다
+          example: 데모투자자
           maxLength: 50
           minLength: 0
       required:
@@ -1665,67 +928,102 @@ components:
       properties:
         userId:
           type: string
+          description: 사용자 ID (UUID)
+          example: 59407a60-bc3b-4a55-a452-72d0bcd72142
         email:
           type: string
+          description: 이메일 (소문자)
+          example: demo@wts.local
         nickname:
           type: string
+          description: 닉네임
+          example: 데모투자자
         accessToken:
           type: string
+          description: '인증 토큰. 이후 요청의 Authorization: Bearer 헤더에 넣는다'
+          example: NTk0MDdhNjAt....kVNLRyNt1D6JOW
         expiresInSeconds:
           type: integer
           format: int64
+          description: 토큰 유효시간 (초)
+          example: 86400
     OrderBookLevel:
       type: object
       properties:
         price:
           type: number
+          description: 호가 (원)
+          example: 79900
         quantity:
           type: integer
           format: int64
+          description: 잔량 (주)
+          example: 835
     OrderBookResponse:
       type: object
       properties:
         symbol:
           type: string
+          description: 종목코드
+          example: 005930
         asks:
           type: array
+          description: 매도호가. 최우선(가장 낮은 가격)부터
           items:
             $ref: '#/components/schemas/OrderBookLevel'
         bids:
           type: array
+          description: 매수호가. 최우선(가장 높은 가격)부터
           items:
             $ref: '#/components/schemas/OrderBookLevel'
         timestamp:
           type: string
           format: date-time
+          description: 호가 시각 (UTC, ISO-8601)
+          example: '2026-09-22T08:12:44.101Z'
     OrderResponse:
       type: object
       properties:
         orderId:
           type: integer
           format: int64
+          description: 주문 ID
+          example: 2
         symbol:
           type: string
+          description: 종목코드
+          example: 005930
         side:
           type: string
+          description: BUY 매수 / SELL 매도
           enum:
           - BUY
           - SELL
+          example: BUY
         orderType:
           type: string
+          description: MARKET 시장가 / LIMIT 지정가
           enum:
           - MARKET
           - LIMIT
+          example: LIMIT
         quantity:
           type: integer
           format: int64
+          description: 주문 수량 (주)
+          example: 10
         limitPrice:
           type: number
+          description: 지정가 (원). 시장가 주문이면 필드가 없다
+          example: 80000
         filledQuantity:
           type: integer
           format: int64
+          description: 체결된 수량 (주)
+          example: 0
         status:
           type: string
+          description: 주문 상태. FILLED 전량 체결 / ACCEPTED 미체결(예수금·수량 묶임) / CANCELLED 취소 / REJECTED 거절
           enum:
           - RECEIVED
           - VALIDATED
@@ -1733,40 +1031,57 @@ components:
           - FILLED
           - CANCELLED
           - REJECTED
+          example: ACCEPTED
         rejectReason:
           type: string
+          description: '거절 사유 에러 코드 (예: INSUFFICIENT_BALANCE). REJECTED 주문에만 있다'
         createdAt:
           type: string
           format: date-time
+          description: 주문 시각 (UTC)
+          example: '2026-09-22T08:12:44.101Z'
         updatedAt:
           type: string
           format: date-time
+          description: 마지막 상태 변경 시각 (UTC)
+          example: '2026-09-22T08:12:44.101Z'
     PlaceOrderRequest:
       type: object
       properties:
         symbol:
           type: string
+          description: 종목코드. 6자리 숫자
+          example: 005930
           pattern: \d{6}
         side:
           type: string
+          description: BUY 매수 / SELL 매도
           enum:
           - BUY
           - SELL
+          example: BUY
         orderType:
           type: string
+          description: MARKET 시장가 / LIMIT 지정가
           enum:
           - MARKET
           - LIMIT
+          example: LIMIT
         quantity:
           type: integer
           format: int64
+          description: 주문 수량 (주). 1 ~ 1,000,000
+          example: 10
           maximum: 1000000
           minimum: 1
         limitPrice:
           type: number
+          description: 지정가 (원). LIMIT 주문에 필수, 0보다 커야 한다. MARKET 주문이면 무시한다
+          example: 80000
           minimum: 0
       required:
       - orderType
+      - quantity
       - side
       - symbol
     PortfolioItem:
@@ -1774,127 +1089,254 @@ components:
       properties:
         symbol:
           type: string
+          description: 종목코드
+          example: 005930
         quantity:
           type: integer
           format: int64
+          description: 보유 수량 (주)
+          example: 10
         reservedQuantity:
           type: integer
           format: int64
+          description: 미체결 매도 주문이 묶어둔 수량 (주)
+          example: 0
         availableQuantity:
           type: integer
           format: int64
+          description: 매도 가능 수량 (주)
+          example: 10
         averagePrice:
           type: number
+          description: 평균 매입단가 (원)
+          example: 80000
         currentPrice:
           type: number
+          description: 현재가 (원). 시세를 읽지 못하면 null이고, 이때 평가금액은 매입금액과 같게 둔다
+          example: 80400
         purchaseAmount:
           type: number
+          description: 매입금액 (원) = 평균단가 × 수량
+          example: 800000
         evaluationAmount:
           type: number
+          description: 평가금액 (원) = 현재가 × 수량
+          example: 804000
         valuationProfit:
           type: number
+          description: 평가손익 (원)
+          example: 4000
         valuationProfitRate:
           type: number
+          description: 평가수익률 (%)
+          example: 0.5
     PortfolioResponse:
       type: object
       properties:
         accountId:
           type: integer
           format: int64
+          description: 가상 계좌 ID
+          example: 1
         cashBalance:
           type: number
+          description: 예수금 (원)
+          example: 98831200
         reservedCash:
           type: number
+          description: 미체결 매수 주문이 묶어둔 금액 (원)
+          example: 0
         availableCash:
           type: number
+          description: 주문 가능 금액 (원) = cashBalance - reservedCash
+          example: 98831200
         totalPurchaseAmount:
           type: number
+          description: 매입금액 합계 (원) = Σ(평균단가 × 수량)
+          example: 1168800
         totalEvaluationAmount:
           type: number
+          description: 평가금액 합계 (원) = Σ(현재가 × 수량)
+          example: 1169000
         valuationProfit:
           type: number
+          description: 평가손익 (원) = 평가금액 - 매입금액. 아직 팔지 않은 이익
+          example: 200
         valuationProfitRate:
           type: number
+          description: 평가수익률 (%)
+          example: 0.02
         realizedProfit:
           type: number
+          description: 실현손익 누적 (원). 이미 팔아서 확정된 이익
+          example: 1600
         totalAssets:
           type: number
+          description: 총자산 (원) = 예수금 + 평가금액
+          example: 100000200
         positions:
           type: array
+          description: 보유 종목별 평가
           items:
             $ref: '#/components/schemas/PortfolioItem'
         evaluatedAt:
           type: string
           format: date-time
+          description: 평가 시각 (UTC). 이 시점의 스냅샷이다
+          example: '2026-09-22T08:12:44.101Z'
     PositionResponse:
       type: object
       properties:
         symbol:
           type: string
+          description: 종목코드
+          example: 005930
         quantity:
           type: integer
           format: int64
+          description: 보유 수량 (주)
+          example: 10
         reservedQuantity:
           type: integer
           format: int64
+          description: 미체결 매도 주문이 묶어둔 수량 (주)
+          example: 4
         availableQuantity:
           type: integer
           format: int64
+          description: 매도 가능 수량 (주) = quantity - reservedQuantity
+          example: 6
         averagePrice:
           type: number
+          description: 평균 매입단가 (원). 이동평균이며 매도는 이 값을 바꾸지 않는다
+          example: 80300
         updatedAt:
           type: string
           format: date-time
+          description: 마지막 변경 시각 (UTC)
+          example: '2026-09-22T08:12:44.101Z'
     PriceResponse:
       type: object
       properties:
         symbol:
           type: string
+          description: 종목코드
+          example: 005930
         price:
           type: number
+          description: 현재가 (원)
+          example: 79800
         previousClose:
           type: number
+          description: 전일 종가 (원)
+          example: 80000
         change:
           type: number
+          description: 전일 대비 (원) = price - previousClose
+          example: -200
         changeRate:
           type: number
+          description: 전일 대비 등락률 (%), 소수 둘째 자리
+          example: -0.25
         volume:
           type: integer
           format: int64
+          description: 당일 누적 거래량 (주). 틱 증분이 아니다
+          example: 159379
         timestamp:
           type: string
           format: date-time
+          description: 시세 시각 (UTC, ISO-8601)
+          example: '2026-09-22T08:12:44.101Z'
     StockResponse:
       type: object
       properties:
         symbol:
           type: string
+          description: 종목코드 (6자리)
+          example: 005930
         name:
           type: string
+          description: 종목명
+          example: 삼성전자
         market:
           type: string
+          description: 시장 구분
+          example: KOSPI
     UserResponse:
       type: object
       properties:
         userId:
           type: string
+          description: 사용자 ID (UUID)
+          example: 59407a60-bc3b-4a55-a452-72d0bcd72142
         email:
           type: string
+          description: 이메일 (소문자)
+          example: demo@wts.local
         nickname:
           type: string
+          description: 닉네임
+          example: 데모투자자
         createdAt:
           type: string
           format: date-time
+          description: 가입 시각 (UTC)
+          example: '2026-09-22T08:12:44.101Z'
     WatchlistItemResponse:
       type: object
       properties:
         symbol:
           type: string
+          description: 종목코드
+          example: 005930
         createdAt:
           type: string
           format: date-time
+          description: 담은 시각 (UTC)
+          example: '2026-09-22T08:12:44.101Z'
   securitySchemes:
     bearerAuth:
       type: http
       description: '`POST /api/users/mock-login` 이 발급한 accessToken'
       scheme: bearer
+x-error-codes:
+- code: UNAUTHORIZED
+  status: 401
+  message: 인증이 필요합니다.
+- code: USER_NOT_FOUND
+  status: 404
+  message: 사용자를 찾을 수 없습니다.
+- code: ACCOUNT_NOT_FOUND
+  status: 404
+  message: 계좌를 찾을 수 없습니다.
+- code: VALIDATION_FAILED
+  status: 400
+  message: 요청 값이 올바르지 않습니다.
+- code: SYMBOL_NOT_FOUND
+  status: 404
+  message: 종목을 찾을 수 없습니다.
+- code: MARKET_PRICE_UNAVAILABLE
+  status: 503
+  message: 현재가를 조회할 수 없습니다.
+- code: MARKET_PRICE_STALE
+  status: 503
+  message: 현재가가 오래되어 주문을 처리할 수 없습니다.
+- code: INSUFFICIENT_BALANCE
+  status: 400
+  message: 주문 가능한 예수금이 부족합니다.
+- code: INSUFFICIENT_POSITION
+  status: 400
+  message: 매도 가능한 수량이 부족합니다.
+- code: INVALID_ORDER_STATE
+  status: 409
+  message: 현재 주문 상태에서는 처리할 수 없습니다.
+- code: ORDER_NOT_FOUND
+  status: 404
+  message: 주문을 찾을 수 없습니다.
+- code: DUPLICATE_ORDER_REQUEST
+  status: 409
+  message: 같은 Idempotency-Key로 다른 주문을 요청했습니다.
+- code: INTERNAL_ERROR
+  status: 500
+  message: 일시적인 오류가 발생했습니다.

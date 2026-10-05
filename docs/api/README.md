@@ -8,6 +8,15 @@
 기계가 읽는 명세는 [`openapi.yaml`](openapi.yaml)에 있다. 컨트롤러와 DTO에서 생성한 것이라
 코드와 어긋나지 않는다. Postman·Insomnia·클라이언트 코드 생성기에 그대로 넣을 수 있다.
 
+같은 내용을 사람이 읽는 표로 옮긴 것:
+
+| 파일 | 용도 |
+|---|---|
+| [`api-spec.md`](api-spec.md) | API 목록 · 요청/응답 필드 · 에러 코드. GitHub에서 바로 읽는다 |
+| [`api-spec.xlsx`](api-spec.xlsx) | 같은 내용의 엑셀 (개요 · API 목록 · API 상세 · 에러 코드 시트) |
+
+세 파일 모두 생성물이다. 설명을 고치려면 컨트롤러의 `@Operation`, DTO의 `@Schema`를 고친다.
+
 서비스를 띄운 상태에서 **Swagger UI**로 직접 호출해 볼 수도 있다.
 
 | 서비스 | Swagger UI | 명세 |
@@ -25,8 +34,19 @@
 ./infra/scripts/generate-openapi.sh
 ```
 
-**이 파일은 손으로 고치지 않는다.** 컨트롤러나 DTO를 고치고 스크립트를 다시 돌린다.
-§24의 엔드포인트가 하나라도 빠지면 스크립트가 멈춘다.
+**이 파일들은 손으로 고치지 않는다.** 컨트롤러나 DTO를 고치고 스크립트를 다시 돌린다.
+스크립트는 아래 경우에 멈춘다.
+
+- §24의 엔드포인트가 하나라도 빠졌다
+- API 요약(`@Operation`)이나 필드 설명(`@Schema`)이 비었다
+- 명세의 공개 여부가 gateway `public-paths` 와 다르다
+- `$ref` 가 끊겼다
+
+`openapi.yaml` 만 있으면 표는 서비스 없이 다시 만들 수 있다.
+
+```bash
+python3 infra/scripts/render-api-spec.py docs/api/openapi.yaml
+```
 
 아래 문서는 OpenAPI가 표현하지 못하는 것 — 왜 그렇게 동작하는지, 체결 규칙, WebSocket,
 Kafka 계약 — 을 설명한다. 두 문서는 같은 API를 다른 각도에서 본다.
@@ -280,7 +300,7 @@ GET /api/market/stocks?keyword=00593
 
 ## Trading
 
-`GET /api/trading/account`를 제외한 모든 경로가 인증을 요구한다.
+모든 경로가 인증을 요구한다.
 금액은 JSON number로 내려간다. 정밀도 손실을 피하려면 클라이언트에서 `Number`가 아닌
 10진 처리(예: `decimal.js`)로 다루는 것을 권장한다.
 

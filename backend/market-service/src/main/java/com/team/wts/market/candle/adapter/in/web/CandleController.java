@@ -12,8 +12,15 @@ import com.team.wts.common.error.DomainException;
 import com.team.wts.common.error.ErrorCode;
 import com.team.wts.market.candle.adapter.in.web.dto.CandleResponse;
 import com.team.wts.market.candle.application.CandleQueryService;
+import com.team.wts.common.error.ApiErrorCodes;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /** 캔들 API. (CLAUDE.md §24) */
+@Tag(name = "차트", description = "분봉 조회. 인증 불필요")
+@SecurityRequirements
 @RestController
 @RequestMapping("/api/market/stocks/{symbol}/candles")
 public class CandleController {
@@ -30,10 +37,12 @@ public class CandleController {
     }
 
     @GetMapping
+    @Operation(summary = "분봉 조회", description = "최근 분봉을 openTime 오름차순으로 돌려준다. 마지막 원소는 아직 확정되지 않은 현재 봉일 수 있다. 현재 1분봉만 지원한다.")
+    @ApiErrorCodes({ErrorCode.VALIDATION_FAILED, ErrorCode.SYMBOL_NOT_FOUND})
     public List<CandleResponse> candles(
-            @PathVariable String symbol,
-            @RequestParam(defaultValue = SUPPORTED_INTERVAL) String interval,
-            @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+            @Parameter(description = "종목코드 (6자리)", example = "005930") @PathVariable String symbol,
+            @Parameter(description = "봉 주기. 현재 1m만 지원", example = "1m") @RequestParam(defaultValue = SUPPORTED_INTERVAL) String interval,
+            @Parameter(description = "최근 몇 개를 받을지. 1 ~ 1000", example = "120") @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
 
         if (!SUPPORTED_INTERVAL.equals(interval)) {
             throw new DomainException(ErrorCode.VALIDATION_FAILED,

@@ -1,10 +1,11 @@
 package com.team.wts.common.autoconfigure;
 
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springdoc.core.customizers.OperationCustomizer;
@@ -15,10 +16,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 
+import com.team.wts.common.error.ApiErrorCodes;
 import com.team.wts.common.error.ErrorCode;
 import com.team.wts.common.error.ErrorResponse;
 
 import io.swagger.v3.core.converter.ModelConverters;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -60,7 +63,7 @@ public class WtsOpenApiAutoConfiguration {
         // 에러 응답 스키마는 ErrorResponse 레코드에서 생성한다.
         ModelConverters.getInstance().readAll(ErrorResponse.class).forEach(components::addSchemas);
 
-        return new OpenAPI()
+        OpenAPI openApi = new OpenAPI()
                 .info(new Info()
                         .title("WTS – " + serviceName)
                         .version("0.0.1-SNAPSHOT")
@@ -77,43 +80,77 @@ public class WtsOpenApiAutoConfiguration {
                                 """.formatted(gatewayUrl)))
                 .servers(List.of(new Server().url(gatewayUrl).description("Gateway")))
                 .components(components)
-                // 시세 조회처럼 인증이 필요 없는 엔드포인트도 있지만, 토큰을 보내도 무시될 뿐이다.
-                // 엔드포인트마다 표시하려면 컨트롤러 10개에 애너테이션을 달아야 해서 전역으로 둔다.
+                // 기본은 인증 필요. 공개 엔드포인트는 컨트롤러에 빈 @SecurityRequirements 를 단다.
+                // 공개 여부의 실제 판단은 gateway의 public-paths 다. 생성 스크립트가 둘을 대조한다.
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_SCHEME));
+
+        // 전체 에러 코드 표. OpenAPI 표준 필드가 아니라 확장(x-)이다. 명세서 생성기가 읽는다.
+        openApi.addExtension("x-error-codes", Arrays.stream(ErrorCode.values())
+                .map(c -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("code", c.name());
+                    row.put("status", c.status().value());
+                    row.put("message", c.defaultMessage());
+                    return row;
+                })
+                .toList());
+        return openApi;
     }
 
     /**
-     * 모든 엔드포인트에 공통 에러 응답을 붙인다. {@link com.team.wts.common.error.GlobalExceptionHandler}가
-     * 전역으로 처리하므로 어떤 엔드포인트에서도 나올 수 있다.
+     * 엔드포인트별 에러 응답을 붙인다. 목록은 {@link ApiErrorCodes}에서, 설명은 {@link ErrorCode}에서 온다.
+     * 인증이 필요한 엔드포인트에는 {@code 401 UNAUTHORIZED}를 더한다.
      *
-     * <p>목록은 {@link ErrorCode}에서 만든다. 에러 코드를 추가하면 명세도 따라 바뀐다.
+     * <p>성공 응답의 미디어 타입 {@code *}{@code /*}도 여기서 {@code application/json}으로 바로잡는다.
+     * 모든 API가 JSON만 내보내는데 springdoc 기본값이 와일드카드다.
      */
     @Bean
     @ConditionalOnMissingBean
     public OperationCustomizer wtsErrorResponseCustomizer() {
-        Map<HttpStatus, List<ErrorCode>> byStatus = Arrays.stream(ErrorCode.values())
-                .sorted(Comparator.comparingInt(c -> c.status().value()))
-                .collect(Collectors.groupingBy(ErrorCode::status,
-                        LinkedHashMap::new, Collectors.toList()));
-
         Content errorContent = new Content().addMediaType("application/json",
                 new MediaType().schema(new Schema<>().$ref(ERROR_SCHEMA_REF)));
 
         return (operation, handlerMethod) -> {
             ApiResponses responses = operation.getResponses();
-            byStatus.forEach((status, codes) -> {
-                String key = String.valueOf(status.value());
-                if (responses.containsKey(key)) {
-                    return;
+            responses.values().forEach(response -> {
+                Content content = response.getContent();
+                if (content != null && content.containsKey("*/*")) {
+                    content.addMediaType("application/json", content.remove("*/*"));
                 }
-                String description = status.getReasonPhrase() + "\n\n"
-                        + codes.stream()
-                                .map(c -> "- `" + c.name() + "` — " + c.defaultMessage())
-                                .collect(Collectors.joining("\n"));
-                responses.addApiResponse(key,
-                        new ApiResponse().description(description).content(errorContent));
             });
+
+            Set<ErrorCode> codes = EnumSet.noneOf(ErrorCode.class);
+            ApiErrorCodes declared = handlerMethod.getMethodAnnotation(ApiErrorCodes.class);
+            if (declared != null) {
+                codes.addAll(Arrays.asList(declared.value()));
+            }
+            if (!isPublic(handlerMethod)) {
+                codes.add(ErrorCode.UNAUTHORIZED);
+            }
+            // 표 형식 명세서(md/xlsx) 생성기가 읽는다. 응답 설명 문자열을 파싱하지 않게 하기 위해서다.
+            operation.addExtension("x-error-codes", codes.stream().map(Enum::name).toList());
+
+            Map<HttpStatus, List<ErrorCode>> byStatus = codes.stream()
+                    .collect(Collectors.groupingBy(ErrorCode::status, LinkedHashMap::new, Collectors.toList()));
+            byStatus.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey((a, b) -> Integer.compare(a.value(), b.value())))
+                    .forEach(entry -> {
+                        String description = entry.getKey().getReasonPhrase() + "\n\n"
+                                + entry.getValue().stream()
+                                        .map(c -> "- `" + c.name() + "` — " + c.defaultMessage())
+                                        .collect(Collectors.joining("\n"));
+                        responses.addApiResponse(String.valueOf(entry.getKey().value()),
+                                new ApiResponse().description(description).content(errorContent));
+                    });
             return operation;
         };
+    }
+
+    /** 빈 {@code @SecurityRequirements}가 메서드나 컨트롤러에 있으면 공개 엔드포인트다. */
+    private static boolean isPublic(org.springframework.web.method.HandlerMethod handlerMethod) {
+        SecurityRequirements onMethod = handlerMethod.getMethodAnnotation(SecurityRequirements.class);
+        SecurityRequirements onType = handlerMethod.getBeanType().getAnnotation(SecurityRequirements.class);
+        SecurityRequirements effective = onMethod != null ? onMethod : onType;
+        return effective != null && effective.value().length == 0;
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.team.wts.common.web.TraceIdFilter;
 
@@ -37,6 +38,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException e) {
         return respond(ErrorCode.VALIDATION_FAILED, e.getHeaderName() + " 헤더가 필요합니다.");
+    }
+
+    /**
+     * 쿼리/경로 파라미터를 선언된 타입으로 바꾸지 못했다. 예: {@code ?status=FOO}, {@code /orders/abc}.
+     * 클라이언트 입력 오류이므로 400이다. 처리하지 않으면 아래 {@link #handleUnexpected}가 500으로 만든다.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        return respond(ErrorCode.VALIDATION_FAILED, e.getName() + " 값이 올바르지 않습니다: " + e.getValue());
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
